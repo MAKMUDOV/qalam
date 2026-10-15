@@ -1897,7 +1897,7 @@ document.addEventListener("click",e=>{
     case "skill": renderSkill(t.dataset.skill); break;
     case "tstart": startTest(t.dataset.id); break;
     case "tpart": if(S.tx){ S.tx.part=+t.dataset.pi; renderTest(); } break;
-    case "tap": if(S.txAud){ const a=S.txAud; if(a.error){ a._rt=0; a.src=S.tx.test.audio+"?r="+Date.now(); a.load(); } if(a.paused){ const pr=a.play(); if(pr&&pr.catch) pr.catch(()=>toast("Audioni ochib bo'lmadi — internetni tekshiring")); } else if(S.admin||1) a.pause(); } break;
+    case "tap": if(S.txAud){ const a=S.txAud; if(a.error){ a._rt=0; a.src=audSrc(S.tx.test.audio)+"?r="+Date.now(); a.load(); } if(a.paused){ const pr=a.play(); if(pr&&pr.catch) pr.catch(()=>toast("Audioni ochib bo'lmadi — internetni tekshiring")); } else if(S.admin||1) a.pause(); } break;
     case "tapsk": if(S.txAud&&S.admin){ S.txAud.currentTime=Math.max(0,S.txAud.currentTime+(+t.dataset.d)); } break;
     case "tplay": if(S.tx){ const pi=+t.dataset.pi, p=S.tx.test.parts[pi]; S.tx.plays[pi]=(S.tx.plays[pi]||0)+1; t.textContent="🔊 Eshitilmoqda… ("+S.tx.plays[pi]+"/2)"; t.disabled=true; speakAr([p.script],()=>{ const b=document.querySelector('[data-act="tplay"]'); if(b&&S.tx){ b.textContent="🔊 Audioni tinglash ("+S.tx.plays[pi]+"/2)"; b.disabled=S.tx.plays[pi]>=2&&!S.admin; } }); } break;
     case "tsubmit": submitTest(false); break;
@@ -2312,6 +2312,9 @@ function renderSkill(k){
   window.scrollTo(0,0);
 }
 /* --- test yechish --- */
+/* Audio Cloudflare'dan (cheksiz trafik); ishlamasa — shu saytning o'zidan */
+const AUD_CDN="https://qalam-arab.pages.dev/";
+function audSrc(f){ if(!f||/^https?:/.test(f)||/pages\.dev$/.test(location.hostname)||location.protocol==="file:"||/^(localhost|127\.)/.test(location.hostname)) return f; return AUD_CDN+f; }
 function txStop(){ if(S.txTimer){ clearInterval(S.txTimer); S.txTimer=null; } if(S.txAud){ try{ S.txAud.pause(); }catch(e){} } }
 /* test audiosi (butun test uchun bitta, qismlar almashganda to'xtamaydi) */
 function tapHTML(){ const a=S.txAud; if(!a) return "";
@@ -2327,7 +2330,7 @@ function startTest(id){
   const t=testById(id); if(!t) return;
   stopTimer(); stopRec(); txStop(); ttsUnlock(); REC.unlock();
   if(S.txAud){ try{ S.txAud.pause(); }catch(e){} S.txAud=null; }
-  if(t.audio){ const a=new Audio(t.audio); a.preload="metadata"; a.addEventListener("error",()=>{ if(!a._rt){ a._rt=1; const ct=a.currentTime; setTimeout(()=>{ a.src=t.audio+"?r="+Date.now(); a.load(); try{ a.currentTime=ct; }catch(e){} },1500); } else toast("Audio yuklanmadi — internetni tekshirib, ▶ ni qayta bosing"); }); let lt=0; a.addEventListener("timeupdate",()=>{ const n=Date.now(); if(n-lt>500){ lt=n; tapUpd(); } }); ["play","pause","ended","loadedmetadata"].forEach(e=>a.addEventListener(e,()=>tapUpd(true))); S.txAud=a; }
+  if(t.audio){ const a=new Audio(audSrc(t.audio)); a.preload="metadata"; a.addEventListener("error",()=>{ a._rt=(a._rt||0)+1; if(a._rt<=2){ const ct=a.currentTime; setTimeout(()=>{ a.src=(a._rt===1?t.audio:audSrc(t.audio))+"?r="+Date.now(); a.load(); try{ a.currentTime=ct; }catch(e){} },1200); } else toast("Audio yuklanmadi — internetni tekshirib, ▶ ni qayta bosing"); }); let lt=0; a.addEventListener("timeupdate",()=>{ const n=Date.now(); if(n-lt>500){ lt=n; tapUpd(); } }); ["play","pause","ended","loadedmetadata"].forEach(e=>a.addEventListener(e,()=>tapUpd(true))); S.txAud=a; }
   S.view="test"; S.tx={test:t,skill:t.skill,ans:{},part:0,left:((S.fm&&FM_PLAN[t.skill])?Math.max(FM_PLAN[t.skill].min,t.time||0):(t.time||30))*60,t0:Date.now(),plays:{},done:false};
   renderTest();
   S.txTimer=setInterval(()=>{ const x=S.tx; if(!x||x.done){ txStop(); return; } x.left--; const c=document.getElementById("txclock"); if(c){ c.textContent=fmt(Math.max(0,x.left)); c.classList.toggle("low",x.left<=60); }
