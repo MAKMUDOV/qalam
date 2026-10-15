@@ -272,6 +272,46 @@ dialog::backdrop{background:rgba(8,16,22,.55);-webkit-backdrop-filter:blur(3px);
 .segadm button{padding:9px 4px;text-align:center;font-size:.9rem}
 .kpis .kpi:last-child:nth-child(odd){grid-column:1/-1}
 [hidden]{display:none!important}
+/* bosh sahifa kartalari (1-rasm uslubi) */
+.hubseg{display:grid;grid-template-columns:1fr 1fr;width:100%;margin:12px 0 4px}.hubseg button{padding:10px}
+.hubnote{margin:8px 4px 12px}
+.skrows{display:flex;flex-direction:column;gap:10px}
+.skr{position:relative;overflow:hidden;display:flex;align-items:center;gap:14px;width:100%;min-height:78px;padding:14px 16px;border-radius:18px;border:1px solid var(--line);background:var(--panel);color:var(--ink);text-align:left;box-shadow:var(--sh);transition:transform .12s}
+.skr:hover{transform:translateY(-1px)}
+.skr .ic{flex:none;width:50px;height:50px;border-radius:50%;display:grid;place-items:center;background:var(--soft);color:var(--accent)}
+.skr .nm{flex:1;font-size:1.25rem;font-weight:800;letter-spacing:-.01em;display:flex;flex-direction:column}.skr .nm small{font-size:.8rem;font-weight:600;opacity:.85}
+.skr .bd{flex:none;font-size:.78rem;font-weight:800;padding:4px 10px;border-radius:999px;background:var(--soft);color:var(--accent);position:relative;z-index:1}
+.skr .wm{position:absolute;right:-10px;bottom:-16px;opacity:.12;transform:scale(2.6);transform-origin:bottom right;pointer-events:none}
+.sk-reading{background:linear-gradient(120deg,#0f4d24,#1d7a3a);color:#fff;border-color:transparent}
+.sk-listening{background:linear-gradient(120deg,#3fd35c,#2fb52a);color:#06210c;border-color:transparent}
+.sk-speaking{background:linear-gradient(120deg,#155e75,#0e7490);color:#fff;border-color:transparent}
+.sk-writing{background:linear-gradient(120deg,#7a3e8e,#9d4fb5);color:#fff;border-color:transparent}
+.sk-full{background:linear-gradient(135deg,#ff3b57,#e60023 55%,#b8001c);color:#fff;border-color:transparent}
+.sk-reading .ic,.sk-speaking .ic,.sk-writing .ic,.sk-full .ic{background:rgba(255,255,255,.16);color:#fff}
+.sk-listening .ic{background:rgba(0,0,0,.1);color:#06210c}
+.sk-reading .bd,.sk-speaking .bd,.sk-writing .bd,.sk-full .bd{background:rgba(255,255,255,.2);color:#fff}
+.sk-listening .bd{background:rgba(0,0,0,.14);color:#06210c}
+.hubbtns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}.hubbtns .histbtn{margin:0;display:flex;align-items:center;gap:8px;justify-content:center}
+/* reyting */
+.lbf{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.lbf label{display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:8px 12px;font-size:.8rem;color:var(--muted);box-shadow:var(--sh);min-width:0}
+.lbf select{flex:1;min-width:0;border:0;background:transparent;font-weight:700;color:var(--ink);font-size:.95rem;padding:4px 0}
+.lbnote{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;background:var(--soft);border:1px solid color-mix(in srgb,var(--accent) 35%,transparent);border-radius:14px;padding:10px 14px;font-size:.85rem;margin-bottom:12px}.lbnote b{color:var(--accent)}
+.lbme{display:flex;align-items:center;gap:14px;background:linear-gradient(120deg,#0f4d24,#1d7a3a);color:#fff;border-radius:20px;padding:16px;box-shadow:var(--sh);margin-bottom:12px}
+.lbme .ring{flex:none;width:68px;height:68px;border-radius:50%;background:conic-gradient(#63ea58 calc(var(--p)*1%),rgba(255,255,255,.18) 0);display:grid;place-items:center}
+.lbme .ring span{width:54px;height:54px;border-radius:50%;background:#fff;color:#0f4d24;display:grid;place-items:center;font-weight:800;font-size:1.3rem}
+.lbme .mi{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}.lbme .mi b{font-size:1.1rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.lbme .mi small{opacity:.88;font-size:.75rem}
+.lbme .chip{align-self:flex-start;background:rgba(255,255,255,.2);color:#fff;font-size:.75rem;padding:2px 8px}
+.lbme .pc{font-size:2.4rem;font-weight:800;border-left:1px solid rgba(255,255,255,.25);padding-left:14px;font-variant-numeric:tabular-nums}.lbme .pc small{font-size:1rem;opacity:.85}
+.lbt{background:var(--panel);border:1px solid var(--line);border-radius:18px;box-shadow:var(--sh);overflow:hidden}
+.lbr{display:grid;grid-template-columns:34px 34px minmax(0,1fr) 70px 58px 40px;gap:8px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+.lbr:last-child{border-bottom:0}.lbr.hd{font-size:.72rem;color:var(--muted);padding:8px 12px}.lbr.me{background:var(--soft)}
+.lbr .rk{font-weight:800;color:var(--muted);width:28px;height:28px;display:grid;place-items:center;justify-self:center}.lbr .rk.top{border-radius:50%;background:color-mix(in srgb,var(--accent) 18%,transparent);color:var(--accent)}.lbr.hd .av{background:none}
+.lbr .av{width:30px;height:30px;border-radius:50%;background:var(--soft);display:grid;place-items:center;font-weight:800;font-size:.8rem;color:var(--accent)}
+.lbr .nm{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.lbr .nm small{color:var(--muted);font-weight:500}
+.lbr .av2{text-align:right;display:flex;flex-direction:column}.lbr .av2 small{color:var(--muted);font-size:.7rem}.lbr .bs,.lbr .ct{text-align:right;color:var(--muted)}
+.lbr.hd .av2{display:block}
+@media (max-width:420px){.lbr{grid-template-columns:30px 28px minmax(0,1fr) 54px 40px 30px;gap:6px;padding:9px 8px;font-size:.88rem}.lbme .pc{font-size:1.9rem}}
 /* CEFR hub va testlar */
 .hubhead{padding:14px 2px 2px}.hubhead h2{margin:0 0 4px;font-size:1.25rem;letter-spacing:-.01em;text-wrap:balance}.hubhead p{margin:0;color:var(--muted);font-size:.92rem}
 .skgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}
@@ -309,6 +349,12 @@ dialog::backdrop{background:rgba(8,16,22,.55);-webkit-backdrop-filter:blur(3px);
 <body>
 <div class="wrap" id="app"></div>
 
+<dialog id="namedlg">
+  <h2>Ismingiz</h2>
+  <p class="note">Reytingda ko'rinishingiz uchun ism va familiyangizni yozing. Faqat ism va ballingiz ko'rinadi, javoblaringiz hech kimga ko'rinmaydi.</p>
+  <input id="namein" class="inp" type="text" autocomplete="name" maxlength="50" placeholder="Masalan: Aziza Karimova">
+  <div class="dact"><button class="ghost" id="nameskip">Keyinroq</button><button class="primary" id="namesave">Saqlash</button></div>
+</dialog>
 <dialog id="aidlg">
   <h2>AI baholash sozlamalari</h2>
   <p class="note">Baholash uchun javob <b>matni</b> (ovoz emas) Anthropic API ga yuboriladi. Buning uchun o'zingizning API kalitingiz kerak (console.anthropic.com). Kalit faqat shu brauzerda saqlanadi.</p>
@@ -417,16 +463,6 @@ function toast(msg){
 }
 
 /* ============ KO'RINISHLAR ============ */
-function header(){
-  return `<header class="top">
-    <div class="brand" data-act="home" role="button" tabindex="0" style="cursor:pointer"><span class="ar" lang="ar">قلم</span>
-      <h1>Qalam<small>Arab tili CEFR tayyorlov</small></h1></div>
-    <div class="tools">
-      <button class="ghost" data-act="random" title="Tasodifiy savol" aria-label="Tasodifiy savol">🎲<span class="lbl"> Tasodifiy</span></button>
-      <button class="ghost" data-act="voice" title="Ovoz sozlamalari" aria-label="Ovoz">🔊<span class="lbl"> Ovoz</span></button>
-      <button class="ghost adm" data-act="admin">${S.admin?"⚙ Admin":"🔒 Admin"}</button>
-    </div></header>`;
-}
 
 function renderSpeakHome(){
   stopTimer(); stopRec(); S.mockMode=false; S.view="speak"; S.topic=null;
@@ -446,8 +482,8 @@ function renderSpeakHome(){
   }).join("");
   $app.innerHTML = header() + `
     <div class="back"><button class="ghost" data-act="home">‹ Bosh sahifa</button></div>
-    <div class="thead" style="border:0;padding-bottom:0;margin-bottom:0"><span class="lvl" style="color:var(--accent)">🎙 Gapirish</span><span class="ar" lang="ar">المحادثة</span></div>
-    <button class="mockcard" data-act="mock"><span><b>Og'zaki mock</b><span>CEFR og'zaki imtihoni kabi: 1.1 → 1.2 → 2 → 3 qism, ~12 daqiqa</span></span><span class="ar" lang="ar">الاختبار الشفهي</span></button>
+    <div class="thead" style="border:0;padding-bottom:0;margin-bottom:0"><span class="lvl" style="color:var(--accent);font-size:1.3rem">Gapirish</span><small>100 mavzu bo'yicha savollar va og'zaki mock</small></div>
+    <button class="mockcard" data-act="mock"><span><b>Og'zaki mock</b><span>CEFR og'zaki imtihoni kabi: 1.1 → 1.2 → 2 → 3 qism, ~12 daqiqa</span></span></button>
     <div class="levels" role="group" aria-label="Daraja">
       ${Object.entries(LEVELS).map(([k,v])=>`<button class="lv" data-l="${k}" aria-pressed="${!q&&S.level===k}" data-level="${k}"><b>${v.name} <span class="ar" lang="ar">${v.ar}</span></b><span>${v.from}–${v.to}-mavzu · ${v.to-v.from+1} ta bo'lim</span></button>`).join("")}
     </div>
@@ -1181,12 +1217,15 @@ async function aiEvaluate(e,rr){
   e.evState="loading"; e.evErr=""; rr();
   try{
     const ev=await aiRun(e);
-    e.ev=ev; e.evState=""; e.evErr=""; rr(); if(e===S.ex) histSave(e);
+    e.ev=ev; e.evState=""; e.evErr=""; rr(); if(e===S.ex) histSave(e); spSendOnce(e);
     setTimeout(()=>{ const h=document.querySelector(".evhero"); if(h) h.scrollIntoView({behavior:"smooth",block:"start"}); },50);
   }catch(x){ e.evState=""; e.evErr=(x&&x.message)||"Xato yuz berdi."; rr(); }
 }
 const aidlg=document.getElementById("aidlg");
 function openAI(){ document.getElementById("aikey").value=AI.key||""; document.getElementById("aimodel").value=AI.model||"claude-sonnet-5-5"; try{ aidlg.showModal(); }catch(x){ aidlg.setAttribute("open",""); } }
+document.getElementById("namesave").onclick=()=>{ const v=(document.getElementById("namein").value||"").trim().replace(/\s+/g," "); if(v.length<2){ toast("Ismingizni yozing"); return; }
+  store.set("qalam:me",{uid:"w"+Date.now().toString(36)+Math.random().toString(36).slice(2,7),name:v.slice(0,50)}); const d=document.getElementById("namedlg"); try{d.close();}catch(x){d.removeAttribute("open");} toast("Saqlandi"); lbFlush(); };
+document.getElementById("nameskip").onclick=()=>{ const d=document.getElementById("namedlg"); try{d.close();}catch(x){d.removeAttribute("open");} };
 document.getElementById("aisave").onclick=()=>{ AI.key=document.getElementById("aikey").value.trim(); AI.model=document.getElementById("aimodel").value.trim()||"claude-sonnet-5-5"; store.set("gapir:aikey",AI.key); store.set("gapir:aimodel",AI.model); try{aidlg.close();}catch(x){aidlg.removeAttribute("open");} toast("Saqlandi"); };
 document.getElementById("aiclear").onclick=()=>{ AI.key=""; store.set("gapir:aikey",""); document.getElementById("aikey").value=""; toast("Kalit o'chirildi"); };
 document.addEventListener("input",ev=>{ const t=ev.target; if(t&&t.classList&&t.classList.contains("tx")&&S.ex&&S.ex.res[+t.dataset.ri]){ S.ex.res[+t.dataset.ri].text=t.value; histSaveSoon(); } });
@@ -1242,6 +1281,8 @@ async function adminLogin(){
   if(await pwCheck(el.value)){
     S.admin=true; S.pwFail=0; try{ sessionStorage.setItem("gapir:admin","1"); }catch(e){}
     { const loc=testsLocal(); if(loc){ TESTS=loc; TESTS_SRC="local"; } }
+    store.set("qalam:admdev",true);
+    try{ const u=TG.on&&TG.wa.initDataUnsafe&&TG.wa.initDataUnsafe.user; if(u&&u.id){ const ids=store.get("qalam:admtg",[]); if(!ids.includes(u.id)){ ids.push(u.id); store.set("qalam:admtg",ids); } } }catch(e){}
     renderAdmin(S.adminNext||"home");
   } else {
     S.pwFail++; el.value="";
@@ -1280,6 +1321,8 @@ async function adminHomeHTML(){
     <div class="card"><h3>Darajalar bo'yicha</h3>
       ${Object.entries(LEVELS).map(([k,v])=>{ const x=st.lv[k], p=x.q?Math.round(x.d/x.q*100):0; return `<div class="lvk" style="--c:var(--${k})"><span class="dot"></span><b>${v.name} <span class="note" style="font-weight:500">${v.from}–${v.to}-mavzu</span></b><span class="note">${x.q} savol${x.empty?` · ${x.empty} mavzuda savol yo'q`:""}</span><i><u style="width:${p}%"></u></i></div>`; }).join("")}</div>
     <div class="acts">
+      <button class="ghost" data-act="rating">🏆 Reyting<small>Barcha o'quvchilar natijalari</small></button>
+      <a class="ghost" href="${esc(LB.sheet)}" target="_blank" rel="noopener" style="text-decoration:none;text-align:left;padding:12px 14px;min-height:56px;display:block">📊 Google Sheets<small style="display:block;color:var(--muted);font-weight:500">Barcha ballar jadvalda</small></a>
       <button class="ghost" data-atab="topics">➕ Savol qo'shish<small>Mavzular va savollarni boshqarish</small></button>
       <button class="ghost" data-atab="results">📈 Natijalar tarixi<small>${hist.length} ta saqlangan imtihon</small></button>
       <button class="ghost" data-act="backup">💾 Zaxira nusxa<small>Saqlash va tiklash</small></button>
@@ -1639,7 +1682,7 @@ function renderMock(){
   stopTimer(); stopRec(); S.mockMode=true; S.topic=null; S.view="";
   $app.innerHTML=header()+`<div class="back"><button class="ghost" data-act="${S.fm?"home":"speak"}">‹ ${S.fm?"Bosh sahifa":"Gapirish bo'limi"}</button></div>
     ${S.fm?`<div class="warn" style="margin:0 0 10px">To'liq mock · 4/4 bo'lim: Gapirish. Tugagach «Yakuniy natija» tugmasini bosing.</div>`:""}
-    <div class="thead"><span class="lvl" style="color:#e60023">Og'zaki mock · CEFR</span><span class="ar" lang="ar">الاختبار الشفهي الكامل</span><small>1.1 → 1.2 → 2 → 3 · ~12 daqiqa</small></div>
+    <div class="thead"><span class="lvl" style="color:#e60023;font-size:1.2rem">Og'zaki mock · CEFR</span><small>1.1 → 1.2 → 2 → 3 · ~12 daqiqa</small></div>
     <div id="exam">${examHTML()}</div>`;
   window.scrollTo(0,0); micAuto();
 }
@@ -1762,7 +1805,7 @@ function randomQuestion(){
 }
 
 document.addEventListener("click",e=>{
-  const t=e.target.closest("button,[data-act='home'].brand"); if(!t) return;
+  const t=e.target.closest("button,[data-act='brand']"); if(!t) return;
   if(t.dataset.topic){ openTopic(+t.dataset.topic); return; }
   if(t.dataset.exl){ S.exLvl=t.dataset.exl; renderExam(); return; }
   if(t.dataset.atab){ S.admTopic=t.dataset.atab==="topics"&&S.adminTab==="topics"?S.admTopic:0; renderAdmin(t.dataset.atab); return; }
@@ -1797,7 +1840,7 @@ document.addEventListener("click",e=>{
     case "tgpost": tgSetup("post"); break;
     case "aicopy": { const [ce,rr]=ctxOf(t); aiCopy(ce,rr); break; }
     case "aieval": { const [ce,rr]=ctxOf(t); aiEvaluate(ce,rr); break; }
-    case "qcheck": { const [ce,rr]=ctxOf(t); if(ce){ ce.qc=true; rr(); } break; }
+    case "qcheck": { const [ce,rr]=ctxOf(t); if(ce){ ce.qc=true; rr(); spSendOnce(ce); } break; }
     case "aiset": if(S.admin) openAI(); else { toast("AI sozlamalari admin panelida"); renderAdmin("settings"); } break;
     case "mock": renderMock(); break;
     case "exstart": exStart(); break;
@@ -1810,6 +1853,10 @@ document.addEventListener("click",e=>{
     case "extext": if(S.ex){ S.ex.showText=!S.ex.showText; renderExam(); } break;
     case "home": if((S.tx&&!S.tx.done)||(S.fm&&!S.fm.saved)){ askConfirm("Joriy test/mock to'xtatilsinmi?").then(ok=>{ if(ok){ S.fm=null; renderHome(); } }); break; } S.topic=null; renderHome(); break;
     case "speak": S.topic=null; renderSpeakHome(); break;
+    case "brand": brandTap(); break;
+    case "htab": S.homeTab=t.dataset.tab; renderHome(); break;
+    case "rating": renderRating(); break;
+    case "lbreload": lbLoad(true).then(()=>{ if(S.view==="rating") renderRating(); }); break;
     case "skill": renderSkill(t.dataset.skill); break;
     case "tstart": startTest(t.dataset.id); break;
     case "tpart": if(S.tx){ S.tx.part=+t.dataset.pi; renderTest(); } break;
@@ -1819,7 +1866,7 @@ document.addEventListener("click",e=>{
     case "fullmock": renderFullMockIntro(); break;
     case "fmstart": S.fm={i:0,scores:{}}; fmStep(); break;
     case "fmnext": if(S.fm){ S.fm.i++; S.tx=null; fmStep(); } break;
-    case "fmspeak": if(S.fm){ S.fm.scores.speaking=S.ex?spScore(S.ex):null; S.fm.i=4; renderFmFinal(); } break;
+    case "fmspeak": if(S.fm){ S.fm.scores.speaking=S.ex?spScore(S.ex):null; if(S.fm.scores.speaking!=null){ lbSend("speaking","Og'zaki mock (to'liq mock)",S.fm.scores.speaking); tresAdd({id:Date.now(),ts:Date.now(),skill:"speaking",title:"Og'zaki mock",score:S.fm.scores.speaking}); } S.fm.i=4; renderFmFinal(); } break;
     case "texport": adminExport(); break;
     case "tcopy": { const ta=document.getElementById("texptx"); if(ta){ try{ navigator.clipboard.writeText(ta.value).then(()=>toast("Nusxalandi"),()=>{ ta.select(); toast("Matnni qo'lda nusxalang"); }); }catch(x){ ta.select(); } } break; }
     case "treset": askConfirm("Mahalliy o'zgarishlar o'chirilsinmi?").then(ok=>{ if(!ok) return; store.set("qalam:tests_local",null); TESTS=DEFAULT_TESTS; TESTS_SRC="builtin"; loadTests().then(()=>renderAdmin("tests")); }); break;
@@ -1943,19 +1990,147 @@ const scaleNote=()=>{ const c=cfg(); return `B1: ${c.pass}–${c.b2-1} · B2: ${
 function tresAll(){ return store.get("qalam:tres",[]); }
 function tresAdd(r){ const a=tresAll(); a.unshift(r); store.set("qalam:tres",a.slice(0,60)); }
 /* --- bosh sahifa --- */
-function skillCardHTML(k){
+/* --- bosh sahifa (yangi) --- */
+const SK_HOME=["reading","listening","speaking","writing"];
+const SK_ICO={
+  reading:'<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5.5C4.5 4.2 8 4 12 6c4-2 7.5-1.8 10-.5V19c-2.5-1.3-6-1.5-10 .5-4-2-7.5-1.8-10-.5z"/><path d="M12 6v13.5"/></svg>',
+  listening:'<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14v-2a8 8 0 0 1 16 0v2"/><rect x="3" y="14" width="4" height="6" rx="1.5"/><rect x="17" y="14" width="4" height="6" rx="1.5"/></svg>',
+  speaking:'<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>',
+  writing:'<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg>',
+  full:'<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4v2a3 3 0 0 0 3 3M17 6h3v2a3 3 0 0 1-3 3"/></svg>',
+  trophy:'<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4v2a3 3 0 0 0 3 3M17 6h3v2a3 3 0 0 1-3 3"/></svg>',
+  chart:'<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>'
+};
+function isAdminDevice(){
+  if(S.admin||store.get("qalam:admdev",false)) return true;
+  try{ const u=TG.on&&TG.wa.initDataUnsafe&&TG.wa.initDataUnsafe.user; const ids=store.get("qalam:admtg",[]); if(u&&ids.includes(u.id)) return true; }catch(e){}
+  return false;
+}
+function header(){
+  const adm=isAdminDevice();
+  return `<header class="top">
+    <div class="brand" data-act="brand" role="button" tabindex="0" style="cursor:pointer"><span class="ar" lang="ar">قلم</span>
+      <h1>Qalam<small>Arab tili CEFR tayyorlov</small></h1></div>
+    ${adm?`<div class="tools">
+      <button class="ghost" data-act="random" title="Tasodifiy savol" aria-label="Tasodifiy savol">🎲</button>
+      <button class="ghost" data-act="voice" title="Ovoz sozlamalari" aria-label="Ovoz">🔊</button>
+      <button class="ghost adm" data-act="admin">${S.admin?"⚙ Admin":"🔒 Admin"}</button>
+    </div>`:""}</header>`;
+}
+let brandTaps=[];
+function brandTap(){
+  const now=Date.now(); brandTaps=brandTaps.filter(t=>now-t<2500); brandTaps.push(now);
+  if(brandTaps.length>=5){ brandTaps=[]; renderAdmin("home"); return; }
+  if(S.view!==""||S.topic||S.mockMode){ if((S.tx&&!S.tx.done)||(S.fm&&!S.fm.saved)||(S.ex&&S.ex.phase!=="done"&&!S.ex.hist)) return; S.topic=null; renderHome(); }
+}
+function skillRowHTML(k,i){
   const s=SKILLS[k], n=k==="speaking"?100:testsOf(k).length;
-  return `<button class="skc" data-act="skill" data-skill="${k}"><span class="ico">${s.ico}</span><span class="t"><b>${s.uz}</b><small>${s.desc}</small></span><span class="ar" lang="ar">${s.ar}</span><span class="cnt">${k==="speaking"?"100 mavzu":n+" ta test"}</span></button>`;
+  return `<button class="skr sk-${k}" data-act="skill" data-skill="${k}"><span class="ic">${SK_ICO[k]}</span><span class="nm">${s.uz}</span><span class="bd">${k==="speaking"?"100 mavzu":n?n+" ta test":"tez orada"}</span><span class="wm" aria-hidden="true">${SK_ICO[k]}</span></button>`;
 }
 function renderHome(){
   stopTimer(); stopRec(); txStop(); S.mockMode=false; S.topic=null; S.view=""; S.fm=null; S.tx=null;
+  const tab=S.homeTab||"parts";
   const last=tresAll().find(r=>r.skill==="full");
   $app.innerHTML=header()+`
-    <div class="hubhead"><h2>Arab tili CEFR imtihoniga tayyorlov</h2><p>4 ko'nikmani alohida mashq qiling yoki to'liq mock topshirib, B1 / B2 / C1 natijangizni biling.</p></div>
-    <button class="mockcard" data-act="fullmock"><span><b>To'liq mock imtihon</b><span>Tinglash → O'qish → Yozish → Gapirish · oxirida umumiy ball va daraja${last?` · oxirgi natija: ${last.score}/75 ${lvlOfScore(last.score)||"(yetarli emas)"}`:""}</span></span><span class="ar" lang="ar">الاختبار الكامل</span></button>
-    <div class="skgrid">${SK_ORDER.map(skillCardHTML).join("")}</div>
-    <button class="histbtn" data-act="myres">📈 Natijalarim</button>
-    <p class="note" style="margin:12px 4px">Baholash shkalasi (75 ball): ${scaleNote()}.</p>`;
+    <div class="hubhead"><h2>CEFR imtihoni</h2><p>Daraja aniqlash · B1–C1</p></div>
+    <div class="seg hubseg" role="group" aria-label="Bo'lim"><button data-act="htab" data-tab="parts" aria-pressed="${tab==="parts"}">Bo'limlar</button><button data-act="htab" data-tab="full" aria-pressed="${tab==="full"}">To'liq</button></div>
+    <p class="note hubnote">ⓘ Mashq uchun mock imtihon — natija rasmiy emas.</p>
+    ${tab==="parts"?`<div class="skrows">${SK_HOME.map(skillRowHTML).join("")}</div>`
+      :`<button class="skr sk-full" data-act="fullmock"><span class="ic">${SK_ICO.full}</span><span class="nm">To'liq mock<small>Tinglash → O'qish → Yozish → Gapirish</small></span><span class="bd">${last?last.score+"/75":"Boshlash"}</span><span class="wm" aria-hidden="true">${SK_ICO.full}</span></button>
+        <p class="note" style="margin:10px 4px">To'rt bo'lim ketma-ket topshiriladi. Oxirida umumiy ball (75 dan) va daraja chiqadi: ${scaleNote()}.</p>`}
+    <div class="hubbtns"><button class="histbtn" data-act="rating"><span>${SK_ICO.trophy}</span> Reyting</button><button class="histbtn" data-act="myres"><span>${SK_ICO.chart}</span> Natijalarim</button></div>`;
+}
+/* --- reyting --- */
+const LB={url:"https://script.google.com/macros/s/AKfycbyHE7ftpWNhGzCzHVK0x9noOAbSS_Ml2sv16Ugkau1_yTIEWkr09iH5ufJQsfT_8LG6qg/exec",sheet:"https://docs.google.com/spreadsheets/d/17hYKd4tNe47wrsmGj5HgKAP6PDWPpfeskj5hB_rE94s/edit",rows:null,ts:0,loading:false,err:""};
+async function loadConfig(){
+  try{ const r=await fetch("config.json?v="+Date.now(),{cache:"no-store"}); if(r.ok){ const j=await r.json(); if(j.leaderUrl) LB.url=j.leaderUrl; if(j.sheetUrl) LB.sheet=j.sheetUrl; } }catch(e){}
+  lbFlush();
+}
+function me(){
+  try{ const u=TG.on&&TG.wa.initDataUnsafe&&TG.wa.initDataUnsafe.user;
+    if(u&&u.id) return {uid:"tg"+u.id,name:[u.first_name,u.last_name].filter(Boolean).join(" ")||u.username||"Foydalanuvchi",username:u.username||""}; }catch(e){}
+  return store.get("qalam:me",null);
+}
+function lbQueue(){ return store.get("qalam:lbq",[]); }
+function lbSend(skill,title,score){
+  if(score==null) return;
+  const q=lbQueue(); q.push({skill,title:String(title||"").slice(0,80),score,level:lvlOfScore(score)||"",ts:Date.now()}); store.set("qalam:lbq",q.slice(-50));
+  if(!me()) openNameDlg(); else lbFlush();
+}
+async function lbFlush(){
+  const m=me(); if(!LB.url||!m) return;
+  const q=lbQueue(); if(!q.length) return;
+  store.set("qalam:lbq",[]);
+  for(const it of q){
+    try{ await fetch(LB.url,{method:"POST",mode:"no-cors",body:JSON.stringify(Object.assign({uid:m.uid,name:m.name,username:m.username||""},it))}); LB.ts=0; }
+    catch(e){ const r=lbQueue(); r.push(it); store.set("qalam:lbq",r); }
+  }
+}
+function openNameDlg(){
+  const d=document.getElementById("namedlg"); if(!d||d.open) return;
+  try{ d.showModal(); }catch(e){ d.setAttribute("open",""); }
+}
+async function lbLoad(force){
+  if(!LB.url){ LB.err="nourl"; return; }
+  if(!force&&LB.rows&&Date.now()-LB.ts<60000) return;
+  LB.loading=true;
+  try{ const r=await fetch(LB.url+(LB.url.includes("?")?"&":"?")+"t="+Date.now()); const j=await r.json(); LB.rows=(j.rows||[]).filter(x=>x&&x[1]); LB.ts=Date.now(); LB.err=""; }
+  catch(e){ LB.err="net"; }
+  LB.loading=false;
+}
+function lbAgg(per,skill){
+  const now=new Date(); let from=0;
+  if(per==="week"){ const d=new Date(now); const wd=(d.getDay()+6)%7; d.setHours(0,0,0,0); from=d.getTime()-wd*864e5; }
+  else if(per==="month"){ from=new Date(now.getFullYear(),now.getMonth(),1).getTime(); }
+  const users={};
+  for(const r of LB.rows||[]){ const [ts,uid,name,un,sk,sc]=r; if(+ts<from) continue; if(skill!=="all"&&sk!==skill) continue; const v=Math.max(0,Math.min(75,+sc||0));
+    const u=users[uid]||(users[uid]={uid,name:name||un||"Foydalanuvchi",sum:0,n:0,best:0}); u.sum+=v; u.n++; u.best=Math.max(u.best,v); if(name) u.name=name; }
+  return Object.values(users).map(u=>Object.assign(u,{avg:Math.round(u.sum/u.n*10)/10})).sort((a,b)=>b.avg-a.avg||b.best-a.best||b.n-a.n);
+}
+const LB_MIN=2;
+async function renderRating(){
+  stopTimer(); stopRec(); txStop(); S.view="rating"; S.topic=null; S.mockMode=false;
+  const per=S.lbPer||"month", sk=S.lbSk||"all";
+  const shell=body=>header()+`<div class="back"><button class="ghost" data-act="home">‹ Bosh sahifa</button></div>
+    <div class="thead" style="border:0;margin-bottom:6px"><span class="lvl" style="color:var(--ink);font-size:1.5rem;display:flex;gap:8px;align-items:center">${SK_ICO.trophy} Imtihon reytingi</span><small>Ballar barcha o'quvchilar orasida taqqoslanadi. Javoblaringiz faqat o'zingizda qoladi.</small></div>
+    <div class="lbf"><label>Davr<select id="lbper">${[["week","Bu hafta"],["month","Bu oy"],["all","Hammasi"]].map(o=>`<option value="${o[0]}" ${per===o[0]?"selected":""}>${o[1]}</option>`).join("")}</select></label>
+      <label>Ko'nikma<select id="lbsk">${[["all","Barchasi"],["listening","Tinglash"],["reading","O'qish"],["writing","Yozish"],["speaking","Gapirish"],["full","To'liq mock"]].map(o=>`<option value="${o[0]}" ${sk===o[0]?"selected":""}>${o[1]}</option>`).join("")}</select></label></div>
+    <div id="lbbody">${body}</div>`;
+  $app.innerHTML=shell(`<p class="note">Yuklanmoqda…</p>`); window.scrollTo(0,0);
+  await lbLoad(false); if(S.view!=="rating") return;
+  const b=document.getElementById("lbbody"); if(b) b.innerHTML=lbBodyHTML(per,sk);
+}
+function lbBodyHTML(per,sk){
+  if(LB.err==="nourl") return `<div class="card"><p class="note" style="margin:0">Reyting hali yoqilmagan. Tez orada ishga tushadi.</p></div>`;
+  if(LB.err==="net"&&!LB.rows) return `<div class="card"><p class="note" style="margin:0">Reytingni yuklab bo'lmadi. Internetni tekshirib, qayta oching.</p><button class="go alt" data-act="lbreload">Qayta urinish</button></div>`;
+  const list=lbAgg(per,sk), m=me();
+  const ranked=list.filter(u=>u.n>=LB_MIN), mine=m?list.find(u=>u.uid===m.uid):null;
+  const myRank=mine?ranked.indexOf(mine)+1:0;
+  const local=tresAll().filter(r=>sk==="all"||r.skill===sk);
+  const myN=mine?mine.n:0, need=Math.max(0,LB_MIN-myN);
+  const lvlTxt=v=>lvlOfScore(v)||"&lt;B1";
+  const ini=n=>esc((String(n).trim()[0]||"?").toUpperCase());
+  const mycard=mine?`<div class="lbme"><div class="ring" style="--p:${Math.round(mine.avg/75*100)}"><span>${ini(mine.name)}</span></div>
+      <div class="mi"><small>${SK_ICO.trophy} O'RTACHA BALL${myRank?" · "+myRank+"-o'rin":""}</small><b>${esc(mine.name)}</b><span class="chip">${lvlTxt(mine.avg)}</span><small>Eng yuqori ${mine.best}/75 · ${mine.n} ta test</small></div>
+      <div class="pc">${Math.round(mine.avg)}<small>/75</small></div></div>`
+    :`<div class="lbme"><div class="ring" style="--p:0"><span>${m?ini(m.name):"?"}</span></div><div class="mi"><small>O'RTACHA BALL</small><b>${m?esc(m.name):"Siz"}</b><small>${local.length?"Natijalaringiz reytingga yuborilmoqda…":"Hali test topshirmagansiz."}</small></div><div class="pc">—</div></div>`;
+  const banner=need>0?`<div class="lbnote"><span>Test: ${myN}</span><b>Reytingda ko'rinish uchun yana ${need} ta test topshiring.</b></div>`:"";
+  const rows=ranked.length?ranked.map((u,i)=>`<div class="lbr ${m&&u.uid===m.uid?"me":""}"><span class="rk ${i<3?"top":""}">${i+1}</span><span class="av">${ini(u.name)}</span><span class="nm">${esc(u.name)}${m&&u.uid===m.uid?" <small>(siz)</small>":""}</span><span class="av2"><b>${u.avg}</b><small>${lvlTxt(u.avg)}</small></span><span class="bs">${u.best}</span><span class="ct">${u.n}</span></div>`).join("")
+    :`<div class="empty">Bu davrda reytingda hali hech kim yo'q. Birinchi bo'ling!</div>`;
+  return `${banner}${mycard}
+    <div class="lbt"><div class="lbr hd"><span class="rk"></span><span class="av"></span><span class="nm">Ism</span><span class="av2">O'rtacha</span><span class="bs">Eng yuqori</span><span class="ct">Test</span></div>${rows}</div>
+    <p class="note" style="margin:10px 4px">Ball 75 dan. ${scaleNote()}. Reytingda kamida ${LB_MIN} ta test topshirganlar ko'rinadi.</p>
+    ${S.admin&&LB.sheet?`<a class="dl" href="${esc(LB.sheet)}" target="_blank" rel="noopener">📊 Google Sheets'da ochish</a>`:""}`;
+}
+document.addEventListener("change",ev=>{ const t=ev.target; if(!t) return;
+  if(t.id==="lbper"){ S.lbPer=t.value; const b=document.getElementById("lbbody"); if(b) b.innerHTML=lbBodyHTML(S.lbPer,S.lbSk||"all"); }
+  if(t.id==="lbsk"){ S.lbSk=t.value; const b=document.getElementById("lbbody"); if(b) b.innerHTML=lbBodyHTML(S.lbPer||"month",S.lbSk); } });
+
+function spSendOnce(e){
+  if(!e||e!==S.ex||e.hist||S.fm||e.lbSent) return;
+  const sc=spScore(e); if(sc==null) return; e.lbSent=true;
+  tresAdd({id:Date.now(),ts:Date.now(),skill:"speaking",title:e.lvl==="MOCK"?"Og'zaki mock":"Gapirish · "+e.lvl,score:sc});
+  lbSend("speaking",e.lvl==="MOCK"?"Og'zaki mock":"Gapirish "+e.lvl,sc);
 }
 function renderSpeak(){ S.view="speak"; renderSpeakHome(); }
 /* --- ko'nikma sahifasi --- */
@@ -1964,7 +2139,7 @@ function renderSkill(k){
   stopTimer(); stopRec(); txStop(); S.view="skill"; S.skill=k; S.topic=null; S.mockMode=false;
   const s=SKILLS[k], list=testsOf(k), res=tresAll();
   $app.innerHTML=header()+`<div class="back"><button class="ghost" data-act="home">‹ Bosh sahifa</button></div>
-    <div class="thead"><span class="lvl" style="color:var(--accent)">${s.ico} ${s.uz}</span><span class="ar" lang="ar">${s.ar}</span><small>${s.desc}</small></div>
+    <div class="thead"><span class="lvl" style="color:var(--accent);font-size:1.3rem">${s.uz}</span><small>${s.desc}</small></div>
     ${list.length?`<div class="list">${list.map((t,i)=>{ const r=res.find(x=>x.testId===t.id);
       return `<button class="row" data-act="tstart" data-id="${esc(t.id)}"><span class="n">${i+1}</span><span class="t"><b style="font-size:1rem">${esc(t.title)}</b><small>${t.level?esc(t.level)+" · ":""}${qCount(t)} ${k==="writing"?"vazifa":"savol"} · ${t.time||"—"} daqiqa${t.published===false?" · <b style='color:var(--danger)'>yashirin</b>":""}</small></span><span class="c">${r?`<b>${r.score}/75</b><br>${lvlOfScore(r.score)||"yetarli emas"}`:"Boshlash ›"}</span></button>`; }).join("")}</div>`
     :`<div class="stage"><div class="empty">Bu bo'limda hozircha test yo'q. Testlar tez orada qo'shiladi.</div></div>`}`;
@@ -2063,6 +2238,7 @@ function submitTest(auto){
     const rec={id:Date.now(),ts:Date.now(),skill:x.skill,testId:x.test.id,title:x.test.title,score:r.score,raw:r.raw,total:r.total,secs,ans:x.ans,fm:!!S.fm};
     tresAdd(rec); x.result=r; x.rec=rec;
     if(S.fm) S.fm.scores[x.skill]=r.score;
+    lbSend(x.skill,x.test.title,r.score);
     tgHaptic("ok"); renderTestResult();
   };
   if(auto){ go(); return; }
@@ -2087,7 +2263,7 @@ function renderTestResult(){
       return `<div class="rv ${d.ok?"good":"badr"}"><span class="qn">${i+1}</span><div><div class="ar" lang="ar">${esc(d.q.q)}</div><div class="note">Sizning javobingiz: <span class="ar" lang="ar">${esc(your)}</span> ${d.ok?"✓":`✗ · To'g'ri javob: <b class="ar" lang="ar">${esc(right)}</b>`}</div></div></div>`; }).join("")}</div>`;
   }
   const next=S.fm?`<button class="go" data-act="fmnext">${S.fm.i<3?"Keyingi bo'lim: "+SKILLS[SK_ORDER[S.fm.i+1]].uz+" ›":"Yakuniy natija ›"}</button>`:`<button class="go" data-act="tstart" data-id="${esc(t.id)}">Qayta topshirish</button><button class="go alt" data-act="skill" data-skill="${t.skill}">‹ ${s.uz} bo'limiga qaytish</button>`;
-  $app.innerHTML=header()+`<div class="thead"><span class="lvl" style="color:var(--accent)">${s.ico} ${s.uz} · natija</span><small>${esc(t.title)} · ${fmt(x.rec.secs)} vaqt sarflandi</small></div>
+  $app.innerHTML=header()+`${S.fm?"":`<div class="back"><button class="ghost" data-act="home">‹ Bosh sahifa</button></div>`}<div class="thead"><span class="lvl" style="color:var(--accent);font-size:1.2rem">${s.uz} · natija</span><small>${esc(t.title)} · ${fmt(x.rec.secs)} vaqt sarflandi</small></div>
     ${scoreHero(r.score,s.uz.toUpperCase()+" · BALL",t.skill==="writing"?"":r.raw+" / "+r.total+" to'g'ri javob")}
     ${S.fm?next:""}${detail}${S.fm?"":next}`;
   window.scrollTo(0,0);
@@ -2101,7 +2277,7 @@ function renderFullMockIntro(){
   const miss=["listening","reading","writing"].filter(k=>!S.fmPick[k]);
   const mins=["listening","reading","writing"].reduce((a,k)=>a+((S.fmPick[k]||{}).time||0),0)+12;
   $app.innerHTML=header()+`<div class="back"><button class="ghost" data-act="home">‹ Bosh sahifa</button></div>
-    <div class="hero"><div class="kick">TO'LIQ MOCK IMTIHON</div><div class="ttl ar" lang="ar">الاختبار الكامل</div>
+    <div class="hero"><div class="kick">TO'LIQ MOCK IMTIHON</div><div class="ttl" style="text-align:left">To'liq mock</div>
       <p>4 bo'lim ketma-ket · oxirida umumiy ball (75 dan) va daraja</p>
       <div class="hstats"><div><b>4</b><span>bo'lim</span></div><div><b>~${mins}</b><span>daqiqa</span></div><div><b>75</b><span>maks. ball</span></div></div></div>
     <div class="card"><h3>Tartib</h3>${SK_ORDER.map((k,i)=>`<div class="step"><i>${SKILLS[k].ico}</i><span><b>${i+1}. ${SKILLS[k].uz}</b> — ${k==="speaking"?"og'zaki mock (1.1 → 1.2 → 2 → 3), ~12 daqiqa":S.fmPick[k]?esc(S.fmPick[k].title)+" · "+(S.fmPick[k].time||"—")+" daqiqa":"<span style='color:var(--danger)'>test yo'q — o'tkazib yuboriladi</span>"}</span></div>`).join("")}</div>
@@ -2130,8 +2306,8 @@ function renderFmFinal(){
   stopTimer(); stopRec(); txStop(); S.view="fmfinal";
   const f=S.fm; const vals=SK_ORDER.map(k=>f.scores[k]).filter(v=>v!=null);
   const total=vals.length?Math.round(vals.reduce((a,b)=>a+b,0)/vals.length):null;
-  if(!f.saved){ f.saved=true; tresAdd({id:Date.now(),ts:Date.now(),skill:"full",title:"To'liq mock",score:total,scores:Object.assign({},f.scores)}); }
-  $app.innerHTML=header()+`<div class="thead"><span class="lvl" style="color:var(--accent)">To'liq mock · yakuniy natija</span><span class="ar" lang="ar">النتيجة النهائية</span></div>
+  if(!f.saved){ f.saved=true; tresAdd({id:Date.now(),ts:Date.now(),skill:"full",title:"To'liq mock",score:total,scores:Object.assign({},f.scores)}); lbSend("full","To'liq mock",total); }
+  $app.innerHTML=header()+`<div class="thead"><span class="lvl" style="color:var(--accent);font-size:1.2rem">To'liq mock · yakuniy natija</span></div>
     ${scoreHero(total,"UMUMIY BALL",vals.length<4?"Diqqat: "+(4-vals.length)+" ta bo'lim baholanmadi, ball qolganlaridan hisoblandi.":"")}
     <div class="card"><h3>Bo'limlar bo'yicha</h3>${SK_ORDER.map(k=>{ const v=f.scores[k], lv=lvlOfScore(v);
       return `<div class="lvk" style="--c:var(--accent)"><span>${SKILLS[k].ico}</span><b>${SKILLS[k].uz}</b><span class="note"><b>${v==null?"—":v+" / 75"}</b> ${v==null?"baholanmadi":lv||"yetarli emas"}</span><i><u style="width:${v==null?0:Math.round(v/75*100)}%"></u></i></div>`; }).join("")}
@@ -2253,6 +2429,7 @@ window.tgReady=tgReady;
 
 renderHome();
 loadTests().then(()=>{ if(S.view==="") renderHome(); });
+loadConfig();
 if(window.Telegram&&window.Telegram.WebApp) tgReady();
 </script>
 </body>
