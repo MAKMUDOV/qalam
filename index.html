@@ -1897,7 +1897,7 @@ document.addEventListener("click",e=>{
     case "skill": renderSkill(t.dataset.skill); break;
     case "tstart": startTest(t.dataset.id); break;
     case "tpart": if(S.tx){ S.tx.part=+t.dataset.pi; renderTest(); } break;
-    case "tap": if(S.txAud){ const a=S.txAud; if(a.paused){ const pr=a.play(); if(pr&&pr.catch) pr.catch(()=>toast("Audioni ochib bo'lmadi — internetni tekshiring")); } else if(S.admin||1) a.pause(); } break;
+    case "tap": if(S.txAud){ const a=S.txAud; if(a.error){ a._rt=0; a.src=S.tx.test.audio+"?r="+Date.now(); a.load(); } if(a.paused){ const pr=a.play(); if(pr&&pr.catch) pr.catch(()=>toast("Audioni ochib bo'lmadi — internetni tekshiring")); } else if(S.admin||1) a.pause(); } break;
     case "tapsk": if(S.txAud&&S.admin){ S.txAud.currentTime=Math.max(0,S.txAud.currentTime+(+t.dataset.d)); } break;
     case "tplay": if(S.tx){ const pi=+t.dataset.pi, p=S.tx.test.parts[pi]; S.tx.plays[pi]=(S.tx.plays[pi]||0)+1; t.textContent="🔊 Eshitilmoqda… ("+S.tx.plays[pi]+"/2)"; t.disabled=true; speakAr([p.script],()=>{ const b=document.querySelector('[data-act="tplay"]'); if(b&&S.tx){ b.textContent="🔊 Audioni tinglash ("+S.tx.plays[pi]+"/2)"; b.disabled=S.tx.plays[pi]>=2&&!S.admin; } }); } break;
     case "tsubmit": submitTest(false); break;
@@ -2198,29 +2198,50 @@ function me(){
 function lbQueue(){ return store.get("qalam:lbq",[]); }
 function lbSend(skill,title,score){
   if(score==null) return;
-  const q=lbQueue(); q.push({skill,title:String(title||"").slice(0,80),score,level:lvlOfScore(score)||"",ts:Date.now()}); store.set("qalam:lbq",q.slice(-50));
+  const q=lbQueue(); q.push({skill,title:String(title||"").slice(0,80),score,level:lvlOfScore(score)||"",ts:Date.now(),rid:Date.now().toString(36)+Math.random().toString(36).slice(2,8)}); store.set("qalam:lbq",q.slice(-50));
   if(!me()) openNameDlg(); else lbFlush();
 }
+/* Natijani serverga yuborish: navbat + tasdiq + qayta urinish (ko'p foydalanuvchida ham yo'qolmaydi) */
+let LBF={busy:false,fail:0,timer:0};
+async function fetchT(url,opt,ms){ const c=new AbortController(); const t=setTimeout(()=>c.abort(),ms||15000); try{ return await fetch(url,Object.assign({signal:c.signal},opt||{})); } finally{ clearTimeout(t); } }
 async function lbFlush(){
-  const m=me(); if(!LB.url||!m) return;
-  const q=lbQueue(); if(!q.length) return;
-  store.set("qalam:lbq",[]);
-  for(const it of q){
-    try{ await fetch(LB.url,{method:"POST",mode:"no-cors",body:JSON.stringify(Object.assign({uid:m.uid,name:m.name,username:m.username||""},it))}); LB.ts=0; }
-    catch(e){ const r=lbQueue(); r.push(it); store.set("qalam:lbq",r); }
-  }
+  const m=me(); if(!LB.url||!m||LBF.busy) return;
+  let q=lbQueue(); if(!q.length) return;
+  LBF.busy=true; let sent=0;
+  try{
+    for(const it of q.slice()){
+      if(!it.rid) it.rid=(it.ts||Date.now()).toString(36)+Math.random().toString(36).slice(2,8);
+      let ok=false;
+      try{ const r=await fetchT(LB.url,{method:"POST",body:JSON.stringify(Object.assign({uid:m.uid,name:m.name,username:m.username||""},it))},20000);
+        let j=null; try{ j=await r.json(); }catch(e){}
+        ok=!!(j&&(j.ok||j.err==="skill"||j.err==="bad")); }catch(e){ ok=false; }
+      if(!ok) break;
+      sent++; q=lbQueue().filter(x=>x.rid!==it.rid&&!(x.ts===it.ts&&x.skill===it.skill)); store.set("qalam:lbq",q);
+    }
+  } finally{ LBF.busy=false; }
+  if(sent){ LB.ts=0; LBF.fail=0; }
+  if(lbQueue().length){ LBF.fail++; clearTimeout(LBF.timer); LBF.timer=setTimeout(lbFlush,Math.min(300000,5000*Math.pow(2,LBF.fail))+Math.random()*5000); }
 }
+window.addEventListener("online",()=>{ LBF.fail=0; lbFlush(); });
 function openNameDlg(){
   const d=document.getElementById("namedlg"); if(!d||d.open) return;
   try{ d.showModal(); }catch(e){ d.setAttribute("open",""); }
 }
 async function lbLoad(force){
   if(!LB.url){ LB.err="nourl"; return; }
-  if(!force&&LB.rows&&Date.now()-LB.ts<60000) return;
-  LB.loading=true;
-  try{ const r=await fetch(LB.url+(LB.url.includes("?")?"&":"?")+"t="+Date.now()); const j=await r.json(); LB.rows=(j.rows||[]).filter(x=>x&&x[1]); LB.ts=Date.now(); LB.err=""; }
-  catch(e){ LB.err="net"; }
-  LB.loading=false;
+  if(!LB.rows){ const c=store.get("qalam:lbrows",null); if(c&&Array.isArray(c.rows)){ LB.rows=c.rows; LB.ts=0; } }
+  if(!force&&LB.rows&&LB.ts&&Date.now()-LB.ts<60000) return;
+  if(LB.loading) return LB.loading;
+  LB.loading=(async()=>{
+    for(let a=0;a<2;a++){
+      try{ const r=await fetchT(LB.url+(LB.url.includes("?")?"&":"?")+"t="+Math.floor(Date.now()/30000),{},20000); const j=await r.json();
+        if(j&&Array.isArray(j.rows)){ LB.rows=j.rows.filter(x=>x&&x[1]); LB.ts=Date.now(); LB.err=""; try{ store.set("qalam:lbrows",{t:LB.ts,rows:LB.rows.slice(-8000)}); }catch(e){} return; } }
+      catch(e){}
+      await new Promise(r=>setTimeout(r,1500+Math.random()*2500));
+    }
+    LB.err=LB.rows?"stale":"net";
+  })();
+  try{ await LB.loading; } finally{ LB.loading=null; }
 }
 function lbAgg(per,skill){
   const now=new Date(); let from=0;
@@ -2248,6 +2269,7 @@ function lbBodyHTML(per,sk){
   if(LB.err==="nourl") return `<div class="card"><p class="note" style="margin:0">Reyting hali yoqilmagan. Tez orada ishga tushadi.</p></div>`;
   if(LB.err==="net"&&!LB.rows) return `<div class="card"><p class="note" style="margin:0">Reytingni yuklab bo'lmadi. Internetni tekshirib, qayta oching.</p><button class="go alt" data-act="lbreload">Qayta urinish</button></div>`;
   const list=lbAgg(per,sk), m=me();
+  const staleNote=LB.err==="stale"?`<p class="note" style="margin:0 4px 8px">⚠ Internet sekin — oxirgi saqlangan reyting ko'rsatilmoqda.</p>`:"";
   const ranked=list.filter(u=>u.n>=LB_MIN), mine=m?list.find(u=>u.uid===m.uid):null;
   const myRank=mine?ranked.indexOf(mine)+1:0;
   const local=tresAll().filter(r=>sk==="all"||r.skill===sk);
@@ -2261,7 +2283,7 @@ function lbBodyHTML(per,sk){
   const banner=need>0?`<div class="lbnote"><span>Test: ${myN}</span><b>Reytingda ko'rinish uchun yana ${need} ta test topshiring.</b></div>`:"";
   const rows=ranked.length?ranked.map((u,i)=>`<div class="lbr ${m&&u.uid===m.uid?"me":""}"><span class="rk ${i<3?"top t"+(i+1):""}">${i+1}</span><span class="av">${ini(u.name)}</span><span class="nm">${esc(u.name)}${m&&u.uid===m.uid?" <small>(siz)</small>":""}</span><span class="av2"><b>${u.avg}</b><small>${lvlTxt(u.avg)}</small></span><span class="bs">${u.best}</span><span class="ct">${u.n}</span></div>`).join("")
     :`<div class="empty">Bu davrda reytingda hali hech kim yo'q. Birinchi bo'ling!</div>`;
-  return `${banner}${mycard}
+  return `${staleNote}${banner}${mycard}
     <div class="lbt"><div class="lbr hd"><span class="rk"></span><span class="av"></span><span class="nm">Ism</span><span class="av2">O'rtacha</span><span class="bs">Eng yuqori</span><span class="ct">Test</span></div>${rows}</div>
     <p class="note" style="margin:10px 4px">Ball 75 dan. ${scaleNote()}. O'rin o'rtacha ball bo'yicha; test topshirgan har bir o'quvchi reytingda ko'rinadi.</p>
     ${S.admin&&LB.sheet?`<a class="dl" href="${esc(LB.sheet)}" target="_blank" rel="noopener">📊 Google Sheets'da ochish</a>`:""}`;
@@ -2305,7 +2327,7 @@ function startTest(id){
   const t=testById(id); if(!t) return;
   stopTimer(); stopRec(); txStop(); ttsUnlock(); REC.unlock();
   if(S.txAud){ try{ S.txAud.pause(); }catch(e){} S.txAud=null; }
-  if(t.audio){ const a=new Audio(t.audio); a.preload="auto"; let lt=0; a.addEventListener("timeupdate",()=>{ const n=Date.now(); if(n-lt>500){ lt=n; tapUpd(); } }); ["play","pause","ended","loadedmetadata"].forEach(e=>a.addEventListener(e,()=>tapUpd(true))); S.txAud=a; }
+  if(t.audio){ const a=new Audio(t.audio); a.preload="metadata"; a.addEventListener("error",()=>{ if(!a._rt){ a._rt=1; const ct=a.currentTime; setTimeout(()=>{ a.src=t.audio+"?r="+Date.now(); a.load(); try{ a.currentTime=ct; }catch(e){} },1500); } else toast("Audio yuklanmadi — internetni tekshirib, ▶ ni qayta bosing"); }); let lt=0; a.addEventListener("timeupdate",()=>{ const n=Date.now(); if(n-lt>500){ lt=n; tapUpd(); } }); ["play","pause","ended","loadedmetadata"].forEach(e=>a.addEventListener(e,()=>tapUpd(true))); S.txAud=a; }
   S.view="test"; S.tx={test:t,skill:t.skill,ans:{},part:0,left:((S.fm&&FM_PLAN[t.skill])?Math.max(FM_PLAN[t.skill].min,t.time||0):(t.time||30))*60,t0:Date.now(),plays:{},done:false};
   renderTest();
   S.txTimer=setInterval(()=>{ const x=S.tx; if(!x||x.done){ txStop(); return; } x.left--; const c=document.getElementById("txclock"); if(c){ c.textContent=fmt(Math.max(0,x.left)); c.classList.toggle("low",x.left<=60); }
