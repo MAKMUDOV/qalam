@@ -341,6 +341,22 @@ dialog::backdrop{background:rgba(8,16,22,.55);-webkit-backdrop-filter:blur(3px);
 .opts.lets .opt .ol{border:0;width:auto;height:auto;font-size:.95rem;background:none!important}
 .opts.lets .opt.sel .ol{color:var(--accent-ink)}.opts.lets .opt.sel{background:var(--accent)}
 .tq.long .tqh .ar{font-size:1.08rem}
+.lbr .rk{display:flex!important;align-items:center;justify-content:center;width:28px!important;height:28px!important;min-height:28px;line-height:1;border-radius:50%;flex:none}.lbr .rk.t1{background:#f5c542!important;color:#5a4300!important}.lbr .rk.t2{background:#cfd6dd!important;color:#33404d!important}.lbr .rk.t3{background:#e0a073!important;color:#5a2e0f!important}
+.pbars{display:grid;gap:8px}.qbar{display:grid;grid-template-columns:minmax(90px,38%) 1fr auto;gap:10px;align-items:center;font-size:.9rem;padding:4px 0}
+.qbar i{height:8px;border-radius:5px;background:var(--soft);overflow:hidden}.qbar u{display:block;height:100%;background:var(--accent);text-decoration:none}.qbar b{white-space:nowrap}
+.mxa .lt{display:inline-block;min-width:20px;text-align:center;border-radius:6px;background:var(--soft);margin-right:4px;font-weight:800}
+.mx{border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin:10px 0;background:var(--panel)}
+.mx.bad{border-color:color-mix(in srgb,var(--danger) 35%,var(--line))}.mx.good{border-color:color-mix(in srgb,var(--accent) 35%,var(--line))}
+.mxh{display:flex;gap:10px;align-items:flex-start}.mxh .ar{flex:1;text-align:right;font-size:1.08rem;line-height:1.7}
+.mx.bad .qn{background:color-mix(in srgb,var(--danger) 18%,transparent);color:var(--danger)}
+.mxa{font-size:.92rem;margin:6px 0 2px;display:grid;gap:3px}.mxa .ar{font-size:1.05rem}
+.why{background:var(--soft);border-radius:10px;padding:8px 10px;margin-top:8px;font-size:.92rem;line-height:1.55}
+.ev{border-right:3px solid var(--accent);padding:6px 10px;margin-top:6px;font-size:1.05rem;line-height:1.9;text-align:right;color:var(--ink);background:color-mix(in srgb,var(--accent) 6%,transparent);border-radius:8px}
+.ev mark{background:color-mix(in srgb,var(--accent) 30%,transparent);color:inherit;border-radius:4px;padding:0 3px}
+.sgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:6px 0 12px}
+.scard{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:12px 14px;box-shadow:var(--sh)}
+.sch{display:flex;gap:8px;align-items:center;color:var(--accent)}.sch b{color:var(--ink)}.scv{font-size:1.7rem;font-weight:800;margin:4px 0 2px}.scv small{font-size:.8rem;color:var(--muted);font-weight:600}
+.rrow{width:100%;background:none;border:0;border-bottom:1px solid var(--line);text-align:left;cursor:pointer;color:inherit;font:inherit}.rrow .ric{color:var(--accent);flex:none}.rrow .hmain{flex:1}.rsc{display:flex;flex-direction:column;align-items:flex-end}.rsc b{font-size:1.2rem}
 .aplayer{position:sticky;top:6px;z-index:5;display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:10px 12px;margin:10px 0;box-shadow:var(--sh)}
 .apbtn{flex:none;width:46px;height:46px;border-radius:50%;border:0;background:var(--accent);color:var(--accent-ink);font-size:1.1rem;font-weight:800;cursor:pointer}
 .apmid{flex:1;min-width:0}.apbar{height:6px;border-radius:4px;background:var(--soft);overflow:hidden;margin-bottom:4px}.apbar u{display:block;height:100%;background:var(--accent)}
@@ -1850,7 +1866,9 @@ document.addEventListener("click",e=>{
       if(a.length<6){ toast("Parol kamida 6 belgi bo'lsin"); break; } if(a!==b){ toast("Parollar mos kelmadi"); break; }
       pwHash(a).then(h=>{ store.set("qalam:pw",h); document.getElementById("npw1").value=""; document.getElementById("npw2").value=""; toast("Parol o'zgartirildi"); }); break; }
     case "hist": if(S.admin&&S.view!=="myres") renderAdmin("results"); else renderMyRes(); break;
-    case "myres": renderMyRes(); break;
+    case "myres": S.mxAll=false; renderMyRes(); break;
+    case "resopen": S.mxAll=false; renderResDetail(+t.dataset.id); break;
+    case "mxall": S.mxAll=!S.mxAll; if(S.view==="resdetail") renderResDetail(S.resId); else if(S.view==="tresult"&&S.tx) renderTestResult(); break;
     case "histopen": openHist(+t.dataset.id); break;
     case "histdel": HIST.del(+t.dataset.id).then(()=>S.view==="myres"?renderMyRes():renderAdmin("results")).catch(()=>{}); break;
     case "micon": micToggle(); break;
@@ -1998,6 +2016,123 @@ const scaleNote=()=>{ const c=cfg(); return `B1: ${c.pass}–${c.b2-1} · B2: ${
 /* --- natijalar (testlar) --- */
 function tresAll(){ return store.get("qalam:tres",[]); }
 function tresAdd(r){ const a=tresAll(); a.unshift(r); store.set("qalam:tres",a.slice(0,60)); }
+/* ===== Xatolar tahlili: har bir xato nega xato ekanini tushuntirish ===== */
+const AR_STOP=new Set("في من على الى إلى عن مع هذا هذه ذلك تلك التي الذي الذين ان أن إن كان كانت او أو ثم قد لا لم لن ما ماذا لماذا كيف متى هل هو هي هم كل بعض عند حتى بين غير كما لقد ايضا أيضا يكون تكون وهو وهي".split(" ").map(w=>QN(w)));
+function arNorm(s){ return QN(s).replace(/ة/g,"ه").replace(/[^ء-ي0-9a-z ]/gi," ").replace(/\s+/g," ").trim(); }
+function arStem(w){ w=w.replace(/^(وال|فال|بال|كال|لل|ال)/,""); if(w.length>4) w=w.replace(/^[وفب]/,""); if(w.length>4) w=w.replace(/(ات|ون|ين|ها|هم|ان|يه|يا)$/,""); return w; }
+function arToks(s){ return arNorm(s).split(" ").filter(w=>w.length>2&&!AR_STOP.has(w)).map(arStem).filter(w=>w.length>1); }
+function arSents(t){ return String(t||"").split(/(?<=[.!؟?!])\s+|\n+/).map(x=>x.trim()).filter(x=>x.length>3); }
+function bestSent(text,probe){
+  const P=new Set(arToks(probe)); if(!P.size) return null; let best=null,bs=0;
+  for(const s of arSents(text)){ const T=new Set(arToks(s)); let c=0; P.forEach(w=>{ if(T.has(w)) c++; }); const sc=c/Math.sqrt(P.size); if(sc>bs){ bs=sc; best=s; } }
+  return bs>=0.5?best:null;
+}
+function commonWords(a,b){ const B=new Set(arToks(b)), out=[], seen=new Set(); for(const raw of String(a).split(/\s+/)){ const w0=raw.replace(/[^\u0621-\u0652]/g,""), w=arNorm(w0); if(!w||w.length<3||AR_STOP.has(w)) continue; const st=arStem(w); if(B.has(st)&&!seen.has(st)){ seen.add(st); out.push(w0); } } return out.slice(0,4); }
+const clip=(s,n)=>{ s=String(s||""); return s.length>n?s.slice(0,n)+"…":s; };
+function partKind(t,p){
+  if(p.bank&&p.passage) return "gap";
+  if(p.bank&&(p.questions||[]).some(q=>String(q.q).length>60)) return t.skill==="reading"&&/\((I|II|III|IV|V|VI)\)/.test((p.questions[0]||{}).q||"")?"head":"match";
+  if(p.bank) return "lmatch";
+  return "mcq";
+}
+function explainQ(t,p,q,v){
+  const right=q.type==="sel"?(p.bank||[])[q.answer]:q.type==="gap"?[].concat(q.answer)[0]:(q.options||[])[q.answer];
+  const your=v==null||v===""?null:q.type==="sel"?(p.bank||[])[v]:q.type==="gap"?v:(q.options||[])[v];
+  const L=j=>q.type==="gap"?"":LET[j]+") ";
+  const R={right, your, rl:q.type==="gap"?"":LET[q.answer], yl:(q.type==="gap"||your==null)?"":LET[v], why:"", ev:""};
+  const opts=(q.options||[]).map(o=>arNorm(o));
+  const tfng=opts.length===3&&opts.some(o=>o==="صواب"||o==="صحيح")&&opts.some(o=>o==="غلط"||o==="خطا");
+  const yn=opts.length===2&&opts.includes("نعم");
+  const kind=partKind(t,p);
+  const src=p.passage||p.script||"";
+  if(t.skill==="listening"&&!p.script){
+    if(yn) R.why=`Audioda aytilgan ma'lumotga ko'ra bu gap ${arNorm(right)==="نعم"?"to'g'ri — shuning uchun «نعم»":"noto'g'ri — audioda boshqacha aytilgan, shuning uchun «لا»"}. ${p.title||"Shu qism"}ni qayta tinglab, shu ma'lumot aytilgan joyni toping.`;
+    else R.why=`Audioda «${clip(right,50)}» aytiladi. ${p.title||"Shu qism"}ni qayta tinglab, kalit so'zni eshitishga harakat qiling.`+(your?` Siz tanlagan variant audioda yo'q yoki boshqa ma'noda kelgan — bunday «tuzoq» variantlar imtihonda ko'p uchraydi.`:"");
+    if(kind==="lmatch") R.why=`Bu yerda gapiruvchining asosiy fikrini topish kerak edi. To'g'ri javob — «${right}». Gapiruvchi aynan shu mavzu haqida gapiradi; ${your?`«${clip(your,40)}» esa boshqa gapiruvchiga tegishli yoki ortiqcha variant.`:"javob berilmagan."}`;
+    return R;
+  }
+  if(kind==="gap"){
+    const m=new RegExp("[^.!؟\\n]*\\("+q.no+"\\)[^.!؟\\n]*[.!؟]?").exec(src);
+    if(m) R.ev=m[0].replace(/\(\d+\)\s*_+/,"【"+right+"】").trim();
+    R.why=`Bo'sh joyga «${right}» qo'yilganda gap ma'no va grammatika jihatidan to'g'ri bo'ladi (pastdagi gapga qarang).`+(your?` «${your}» bu yerda ma'noga to'g'ri kelmaydi yoki gapning grammatik shakliga mos emas.`:"");
+    return R;
+  }
+  if(kind==="match"||kind==="head"){
+    const cw=commonWords(q.q,right);
+    R.why=(kind==="head"?`Paragrafning asosiy mavzusi — «${right}».`:`E'londagi holat «${right}» bilan mos keladi.`)+(cw.length?` Matndagi kalit so'zlar: «${cw.join("، ")}» — aynan shu variantga ishora qiladi.`:"")+(your?` «${clip(your,50)}» esa matnda ${kind==="head"?"asosiy fikr emas":"tilga olinmagan yoki boshqa e'longa tegishli"}.`:"");
+    return R;
+  }
+  if(tfng){
+    const k=arNorm(right);
+    const ev=bestSent(src,q.q);
+    if(k==="صواب"||k==="صحيح") R.why=`«${right}» — matnda aynan shu fikr aytilgan.`;
+    else if(k==="غلط"||k==="خطا") R.why=`«${right}» — matnda bu gapga qarama-qarshi ma'lumot berilgan.`;
+    else R.why=`«${right}» — matnda bu haqda ma'lumot yo'q: tasdiqlanmagan ham, inkor etilmagan ham.`;
+    if(your) R.why+=` Siz «${your}» deb belgiladingiz.`;
+    if(ev&&k!=="غير معطى") R.ev=ev; else if(ev) { R.ev=ev; R.why+=` Quyidagi gapda mavzu tilga olingan, lekin aynan bu da'vo yo'q.`; }
+    return R;
+  }
+  if(yn){ R.why=`Bu gap matnga ko'ra ${arNorm(right)==="نعم"?"to'g'ri":"noto'g'ri"}. Tegishli gapga qarang.`; R.ev=src?bestSent(src,q.q)||"":""; return R; }
+  const ev=src?bestSent(src,q.q+" "+right):null;
+  R.why=(ev?`To'g'ri javobning dalili matnda bor (pastda).`:`Savolga aloqador qismni matndan qayta o'qing.`)+(your?` Siz tanlagan variant matndagi ma'lumotga zid yoki matnda umuman aytilmagan — faqat o'xshash so'zlar bor.`:" Javob berilmagan.");
+  if(ev) R.ev=ev;
+  return R;
+}
+function testDetail(t,ans){
+  const det=[]; (t.parts||[]).forEach((p,pi)=>(p.questions||[]).forEach((q,qi)=>{ const v=ans[pi+"-"+qi]; const ok=q.type==="gap"?gapOk(v,q.answer):v===q.answer; det.push({pi,qi,p,q,v,ok}); }));
+  return det;
+}
+function mistakesHTML(t,ans,showAll){
+  const det=testDetail(t,ans), wrong=det.filter(d=>!d.ok);
+  const byPart=(t.parts||[]).map((p,pi)=>{ const a=det.filter(d=>d.pi===pi); return {t:p.title||((pi+1)+"-qism"),n:a.length,ok:a.filter(d=>d.ok).length}; });
+  const parts=`<div class="pbars">${byPart.map(b=>`<div class="qbar"><span>${esc(b.t)}</span><i><u style="width:${b.n?Math.round(b.ok/b.n*100):0}%"></u></i><b>${b.ok}/${b.n}</b></div>`).join("")}</div>`;
+  const list=(showAll?det:wrong).map(d=>{ const x=explainQ(t,d.p,d.q,d.v);
+    return `<div class="mx ${d.ok?"good":"bad"}"><div class="mxh"><span class="qn">${d.q.no||d.qi+1}</span><span class="ar" lang="ar">${esc(clip(d.q.q,200))}</span></div>
+      <div class="mxa"><div>${d.ok?"✓":"✗"} Sizning javobingiz: ${x.yl?`<span class="lt">${x.yl}</span>`:""}<b class="ar" lang="ar" dir="rtl">${x.your==null?"— (javob berilmagan)":esc(x.your)}</b></div>${d.ok?"":`<div>✓ To'g'ri javob: ${x.rl?`<span class="lt">${x.rl}</span>`:""}<b class="ar" lang="ar" dir="rtl">${esc(x.right)}</b></div>`}</div>
+      ${d.ok?"":`<div class="why"><b>Nega?</b> ${esc(x.why)}</div>${x.ev?`<div class="ev ar" lang="ar">${esc(x.ev).replace(/【(.*?)】/g,'<mark>$1</mark>')}</div>`:""}`}</div>`; }).join("");
+  return `<div class="card"><h3>Qismlar bo'yicha</h3>${parts}</div>
+    <div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><h3 style="margin:0">${showAll?"Barcha savollar":"Xatolar va sabablari"} (${showAll?det.length:wrong.length})</h3><button class="ghost" data-act="mxall">${showAll?"Faqat xatolar":"Barcha savollar"}</button></div>
+      ${list||`<p class="note">Xato yo'q — barakalla! 🎉</p>`}</div>`;
+}
+/* --- Natijalarim --- */
+async function renderMyRes(){
+  stopTimer(); stopRec(); txStop(); S.mockMode=false; S.topic=null; S.ex=null; S.view="myres";
+  const a=tresAll();
+  const sk=["listening","reading","writing","full"];
+  const stat=k=>{ const r=a.filter(x=>x.skill===k&&x.score!=null); return {n:r.length,best:r.length?Math.max(...r.map(x=>x.score)):null,avg:r.length?Math.round(r.reduce((s,x)=>s+x.score,0)/r.length):null,last:r[0]}; };
+  let spk={n:0}; try{ const h=await HIST.all(); spk={n:h.length}; }catch(e){}
+  const nm=k=>k==="full"?"To'liq mock":SKILLS[k].uz, ic=k=>SK_ICO[k]||"";
+  // eng ko'p xato qilingan qismlar
+  const weak={}; a.forEach(r=>{ const t=testById(r.testId); if(!t||!t.parts||!r.ans) return; testDetail(t,r.ans).forEach(d=>{ const key=SKILLS[t.skill].uz+" · "+(d.p.title||""); const w=weak[key]||(weak[key]={n:0,bad:0}); w.n++; if(!d.ok) w.bad++; }); });
+  const weakL=Object.entries(weak).filter(([k,w])=>w.n>=3).map(([k,w])=>({k,p:w.bad/w.n,bad:w.bad,n:w.n})).sort((x,y)=>y.p-x.p).slice(0,4);
+  $app.innerHTML=header()+`<div class="back"><button class="ghost" data-act="home">‹ Bosh sahifa</button></div>
+    <div class="thead" style="border:0"><span class="lvl" style="color:var(--ink);font-size:1.5rem;display:flex;gap:8px;align-items:center">${SK_ICO.chart} Natijalarim</span><small>Faqat sizga ko'rinadi. Har bir testni bosib, xatolaringiz va ularning sababini ko'ring.</small></div>
+    <div class="sgrid">${sk.map(k=>{ const s=stat(k); return `<div class="scard"><div class="sch">${ic(k)}<b>${nm(k)}</b></div><div class="scv">${s.avg==null?"—":s.avg}<small>/75</small></div><small class="note">${s.n?`${s.n} ta test · eng yuqori ${s.best} · ${lvlOfScore(s.avg)||"B1 dan past"}`:"Hali topshirilmagan"}</small></div>`; }).join("")}
+      <div class="scard"><div class="sch">${SK_ICO.speaking}<b>Gapirish</b></div><div class="scv">${spk.n}<small> ta</small></div><small class="note">og'zaki imtihon yozuvlari pastda</small></div></div>
+    ${weakL.length?`<div class="card"><h3>Ko'proq ishlash kerak bo'lgan joylar</h3>${weakL.map(w=>`<div class="qbar"><span>${esc(w.k)}</span><i><u style="width:${Math.round((1-w.p)*100)}%"></u></i><b>${w.bad} xato / ${w.n}</b></div>`).join("")}</div>`:""}
+    <div class="card"><h3>Barcha urinishlar</h3>${a.length?a.map(r=>{ const k=r.skill, lv=lvlOfScore(r.score);
+      return `<button class="hrow rrow" data-act="resopen" data-id="${r.id}"><span class="ric">${ic(k)}</span><span class="hmain"><b>${esc(r.title||nm(k))}</b><small>${new Date(r.ts).toLocaleString()}${r.total?` · ${r.raw}/${r.total} to'g'ri`:""}${k==="full"&&r.scores?" · "+SK_ORDER.map(x=>SKILLS[x].uz[0]+": "+(r.scores[x]==null?"—":r.scores[x])).join(" "):""}</small></span><span class="rsc"><b>${r.score==null?"—":r.score}</b><small style="color:${lv?"var(--accent)":"var(--danger)"}">${r.score==null?"":lv||"&lt;B1"}</small></span></button>`; }).join(""):`<p class="note">Hali test topshirmagansiz. Test tugagach natija shu yerda paydo bo'ladi.</p>`}</div>
+    <div id="myspk"></div>`;
+  window.scrollTo(0,0);
+  try{ const h=await HIST.all(); if(h.length&&S.view==="myres"){ const el=document.getElementById("myspk"); if(el) el.innerHTML=(await adminResultsHTML()).replace(tresHTML(),""); } }catch(e){}
+}
+function renderResDetail(id){
+  const r=tresAll().find(x=>x.id===id); if(!r) return;
+  stopTimer(); S.view="resdetail"; S.resId=id;
+  const t=testById(r.testId), s=r.skill==="full"?{uz:"To'liq mock"}:SKILLS[r.skill];
+  let body="";
+  if(r.skill==="full"){ body=`<div class="card"><h3>Bo'limlar</h3>${SK_ORDER.map(k=>`<div class="qbar"><span>${SKILLS[k].uz}</span><i><u style="width:${r.scores&&r.scores[k]!=null?Math.round(r.scores[k]/75*100):0}%"></u></i><b>${r.scores&&r.scores[k]!=null?r.scores[k]+"/75":"—"}</b></div>`).join("")}<p class="note">Har bir bo'limning xatolari «Barcha urinishlar» ro'yxatida alohida ko'rinadi.</p></div>`; }
+  else if(!t){ body=`<div class="card"><p class="note" style="margin:0">Bu test ilovadan olib tashlangan, shuning uchun savollarni ko'rsatib bo'lmaydi.</p></div>`; }
+  else if(t.skill==="writing"){ body=(t.tasks||[]).map((w,i)=>{ const p=wTask(w,(r.ans||{})["w"+i]||""); return `<div class="card"><h3>${esc(w.title||w.id)} · ${p.words} so'z</h3><div class="ev ar" lang="ar">${esc((r.ans||{})["w"+i]||"—")}</div>${p.p.dialect.map(d=>`<div class="why"><b>Xato:</b> <span class="ar" lang="ar">${esc(d.said)} → ${esc(d.fix)}</span> — sheva so'zi, fushada boshqacha.</div>`).join("")}${p.p.issues.map(d=>`<div class="why"><b>Xato:</b> <span class="ar" lang="ar">${esc(d.said)} → ${esc(d.fix)}</span> — ${esc(d.why)}</div>`).join("")}${p.tips.map(x=>`<div class="why"><b>Maslahat:</b> ${esc(x)}</div>`).join("")||`<p class="note">Jiddiy kamchilik topilmadi.</p>`}</div>`; }).join(""); }
+  else body=mistakesHTML(t,r.ans||{},!!S.mxAll);
+  $app.innerHTML=header()+`<div class="back"><button class="ghost" data-act="myres">‹ Natijalarim</button></div>
+    <div class="thead"><span class="lvl" style="color:var(--accent);font-size:1.2rem">${esc(r.title||s.uz)}</span><small>${new Date(r.ts).toLocaleString()}${r.secs?" · "+fmt(r.secs)+" vaqt":""}</small></div>
+    ${scoreHero(r.score,(s.uz||"").toUpperCase()+" · BALL",r.total?r.raw+" / "+r.total+" to'g'ri javob":"")}
+    ${body}
+    ${t&&r.skill!=="full"?`<button class="go" data-act="tstart" data-id="${esc(t.id)}">Qayta topshirish</button>`:""}`;
+  window.scrollTo(0,0);
+}
+
 /* --- bosh sahifa --- */
 /* --- bosh sahifa (yangi) --- */
 const SK_HOME=["reading","listening","speaking","writing"];
@@ -2096,12 +2231,12 @@ function lbAgg(per,skill){
     const u=users[uid]||(users[uid]={uid,name:name||un||"Foydalanuvchi",sum:0,n:0,best:0}); u.sum+=v; u.n++; u.best=Math.max(u.best,v); if(name) u.name=name; }
   return Object.values(users).map(u=>Object.assign(u,{avg:Math.round(u.sum/u.n*10)/10})).sort((a,b)=>b.avg-a.avg||b.best-a.best||b.n-a.n);
 }
-const LB_MIN=2;
+const LB_MIN=1;
 async function renderRating(){
   stopTimer(); stopRec(); txStop(); S.view="rating"; S.topic=null; S.mockMode=false;
-  const per=S.lbPer||"month", sk=S.lbSk||"all";
+  const per=S.lbPer||"all", sk=S.lbSk||"all";
   const shell=body=>header()+`<div class="back"><button class="ghost" data-act="home">‹ Bosh sahifa</button></div>
-    <div class="thead" style="border:0;margin-bottom:6px"><span class="lvl" style="color:var(--ink);font-size:1.5rem;display:flex;gap:8px;align-items:center">${SK_ICO.trophy} Imtihon reytingi</span><small>Ballar barcha o'quvchilar orasida taqqoslanadi. Javoblaringiz faqat o'zingizda qoladi.</small></div>
+    <div class="thead" style="border:0;margin-bottom:6px"><span class="lvl" style="color:var(--ink);font-size:1.5rem;display:flex;gap:8px;align-items:center">${SK_ICO.trophy} Imtihon reytingi</span><small>Barcha o'quvchilarning natijalari va o'rinlari. Javoblaringiz faqat o'zingizda qoladi.</small></div>
     <div class="lbf"><label>Davr<select id="lbper">${[["week","Bu hafta"],["month","Bu oy"],["all","Hammasi"]].map(o=>`<option value="${o[0]}" ${per===o[0]?"selected":""}>${o[1]}</option>`).join("")}</select></label>
       <label>Ko'nikma<select id="lbsk">${[["all","Barchasi"],["listening","Tinglash"],["reading","O'qish"],["writing","Yozish"],["speaking","Gapirish"],["full","To'liq mock"]].map(o=>`<option value="${o[0]}" ${sk===o[0]?"selected":""}>${o[1]}</option>`).join("")}</select></label></div>
     <div id="lbbody">${body}</div>`;
@@ -2120,20 +2255,20 @@ function lbBodyHTML(per,sk){
   const lvlTxt=v=>lvlOfScore(v)||"&lt;B1";
   const ini=n=>esc((String(n).trim()[0]||"?").toUpperCase());
   const mycard=mine?`<div class="lbme"><div class="ring" style="--p:${Math.round(mine.avg/75*100)}"><span>${ini(mine.name)}</span></div>
-      <div class="mi"><small>${SK_ICO.trophy} O'RTACHA BALL${myRank?" · "+myRank+"-o'rin":""}</small><b>${esc(mine.name)}</b><span class="chip">${lvlTxt(mine.avg)}</span><small>Eng yuqori ${mine.best}/75 · ${mine.n} ta test</small></div>
+      <div class="mi"><small>${SK_ICO.trophy} ${myRank?myRank+"-O'RIN · "+ranked.length+" TA ISHTIROKCHI":"O'RTACHA BALL"}</small><b>${esc(mine.name)}</b><span class="chip">${lvlTxt(mine.avg)}</span><small>Eng yuqori ${mine.best}/75 · ${mine.n} ta test</small></div>
       <div class="pc">${Math.round(mine.avg)}<small>/75</small></div></div>`
     :`<div class="lbme"><div class="ring" style="--p:0"><span>${m?ini(m.name):"?"}</span></div><div class="mi"><small>O'RTACHA BALL</small><b>${m?esc(m.name):"Siz"}</b><small>${local.length?"Natijalaringiz reytingga yuborilmoqda…":"Hali test topshirmagansiz."}</small></div><div class="pc">—</div></div>`;
   const banner=need>0?`<div class="lbnote"><span>Test: ${myN}</span><b>Reytingda ko'rinish uchun yana ${need} ta test topshiring.</b></div>`:"";
-  const rows=ranked.length?ranked.map((u,i)=>`<div class="lbr ${m&&u.uid===m.uid?"me":""}"><span class="rk ${i<3?"top":""}">${i+1}</span><span class="av">${ini(u.name)}</span><span class="nm">${esc(u.name)}${m&&u.uid===m.uid?" <small>(siz)</small>":""}</span><span class="av2"><b>${u.avg}</b><small>${lvlTxt(u.avg)}</small></span><span class="bs">${u.best}</span><span class="ct">${u.n}</span></div>`).join("")
+  const rows=ranked.length?ranked.map((u,i)=>`<div class="lbr ${m&&u.uid===m.uid?"me":""}"><span class="rk ${i<3?"top t"+(i+1):""}">${i+1}</span><span class="av">${ini(u.name)}</span><span class="nm">${esc(u.name)}${m&&u.uid===m.uid?" <small>(siz)</small>":""}</span><span class="av2"><b>${u.avg}</b><small>${lvlTxt(u.avg)}</small></span><span class="bs">${u.best}</span><span class="ct">${u.n}</span></div>`).join("")
     :`<div class="empty">Bu davrda reytingda hali hech kim yo'q. Birinchi bo'ling!</div>`;
   return `${banner}${mycard}
     <div class="lbt"><div class="lbr hd"><span class="rk"></span><span class="av"></span><span class="nm">Ism</span><span class="av2">O'rtacha</span><span class="bs">Eng yuqori</span><span class="ct">Test</span></div>${rows}</div>
-    <p class="note" style="margin:10px 4px">Ball 75 dan. ${scaleNote()}. Reytingda kamida ${LB_MIN} ta test topshirganlar ko'rinadi.</p>
+    <p class="note" style="margin:10px 4px">Ball 75 dan. ${scaleNote()}. O'rin o'rtacha ball bo'yicha; test topshirgan har bir o'quvchi reytingda ko'rinadi.</p>
     ${S.admin&&LB.sheet?`<a class="dl" href="${esc(LB.sheet)}" target="_blank" rel="noopener">📊 Google Sheets'da ochish</a>`:""}`;
 }
 document.addEventListener("change",ev=>{ const t=ev.target; if(!t) return;
   if(t.id==="lbper"){ S.lbPer=t.value; const b=document.getElementById("lbbody"); if(b) b.innerHTML=lbBodyHTML(S.lbPer,S.lbSk||"all"); }
-  if(t.id==="lbsk"){ S.lbSk=t.value; const b=document.getElementById("lbbody"); if(b) b.innerHTML=lbBodyHTML(S.lbPer||"month",S.lbSk); } });
+  if(t.id==="lbsk"){ S.lbSk=t.value; const b=document.getElementById("lbbody"); if(b) b.innerHTML=lbBodyHTML(S.lbPer||"all",S.lbSk); } });
 
 function spSendOnce(e){
   if(!e||e!==S.ex||e.hist||S.fm||e.lbSent) return;
@@ -2301,6 +2436,7 @@ function submitTest(auto){
   askConfirm(unans>0?`${unans} ta ${x.test.skill==="writing"?"vazifa":"savol"} javobsiz qoldi. Baribir topshirasizmi?`:"Javoblarni topshirasizmi?").then(ok=>{ if(ok) go(); });
 }
 function renderTestResult(){
+  S.view="tresult";
   const x=S.tx, t=x.test, r=x.result, s=SKILLS[t.skill];
   let detail="";
   if(t.skill==="writing"){
@@ -2314,9 +2450,7 @@ function renderTestResult(){
       <p class="note" style="margin:8px 2px 0">Avtomatik ball taxminiy: hajm, bog'lovchilar, so'z boyligi va fushaga qaraydi. Aniqroq baho va xatolar uchun AI tekshiruvidan foydalaning.</p></div>
       <div id="wrai">${aiCardHTML(S.wr,"wr")}</div>`;
   } else {
-    detail=`<div class="card"><h3>Javoblar: ${r.raw} / ${r.total} to'g'ri</h3>${r.det.map((d,i)=>{ const opl=d.q.type==="sel"?(d.bank||[]):(d.q.options||[]), lab=j=>(d.q.type==="sel"?LET[j]+") ":"")+(opl[j]==null?"":opl[j]);
-      const right=d.q.type==="gap"?(Array.isArray(d.q.answer)?d.q.answer[0]:d.q.answer):lab(d.q.answer); const your=d.q.type==="gap"?(d.v||"—"):(d.v!=null?lab(d.v):"—");
-      return `<div class="rv ${d.ok?"good":"badr"}"><span class="qn">${d.q.no||i+1}</span><div><div class="ar" lang="ar">${esc(d.q.q.length>180?d.q.q.slice(0,180)+"…":d.q.q)}</div><div class="note">Sizning javobingiz: <span class="ar" lang="ar">${esc(your)}</span> ${d.ok?"✓":`✗ · To'g'ri javob: <b class="ar" lang="ar">${esc(right)}</b>`}</div></div></div>`; }).join("")}</div>`;
+    detail=mistakesHTML(t,x.ans,!!S.mxAll);
   }
   const next=S.fm?`<button class="go" data-act="fmnext">${S.fm.i<3?"Keyingi bo'lim: "+SKILLS[SK_ORDER[S.fm.i+1]].uz+" ›":"Yakuniy natija ›"}</button>`:`<button class="go" data-act="tstart" data-id="${esc(t.id)}">Qayta topshirish</button><button class="go alt" data-act="skill" data-skill="${t.skill}">‹ ${s.uz} bo'limiga qaytish</button>`;
   $app.innerHTML=header()+`${S.fm?"":`<div class="back"><button class="ghost" data-act="home">‹ Bosh sahifa</button></div>`}<div class="thead"><span class="lvl" style="color:var(--accent);font-size:1.2rem">${s.uz} · natija</span><small>${esc(t.title)} · ${fmt(x.rec.secs)} vaqt sarflandi</small></div>
