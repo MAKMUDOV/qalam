@@ -480,6 +480,7 @@ body.pkopen{overflow:hidden}
 .lbme .ring span{font-size:1.5rem}
 @media (max-width:420px){.lbr{grid-template-columns:30px 28px minmax(0,1fr) auto!important;gap:6px;padding:9px 8px}}
 .lbr .rk{justify-self:center!important;max-width:28px;min-width:28px;aspect-ratio:1;padding:0!important;box-sizing:border-box}
+.tpbest{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;max-width:40%}.tpbest i{font-style:normal;font-size:.7rem;font-weight:800;padding:2px 6px;border-radius:8px;background:var(--soft);color:var(--accent)}
 </style>
 </head>
 <body>
@@ -1428,6 +1429,7 @@ async function adminLogin(){
   if(left>0){ msg.textContent="Juda ko'p urinish. "+left+" soniyadan keyin urinib ko'ring."; return; }
   if(await pwCheck(el.value)){
     S.admin=true; S.pwFail=0; try{ sessionStorage.setItem("gapir:admin","1"); }catch(e){}
+    await tKeySet(el.value); TP.rows=null; tAuth();
     { const loc=testsLocal(); if(loc){ TESTS=loc; TESTS_SRC="local"; } }
     store.set("qalam:admdev",true);
     try{ const u=TG.on&&TG.wa.initDataUnsafe&&TG.wa.initDataUnsafe.user; if(u&&u.id){ const ids=store.get("qalam:admtg",[]); if(!ids.includes(u.id)){ ids.push(u.id); store.set("qalam:admtg",ids); } } }catch(e){}
@@ -1607,7 +1609,7 @@ async function renderAdmin(tab){
     const el=document.getElementById("apw"); if(el) el.focus(); return;
   }
   tab=tab||S.adminTab||"home"; S.adminTab=tab;
-  const tabs=[["home","Umumiy"],["tests","Testlar"],["topics","Gapirish"],["results","Natijalar"],["settings","Sozlamalar"]];
+  const tabs=[["home","Umumiy"],["students","O'quvchilar"],["tests","Testlar"],["topics","Gapirish"],["results","Natijalar"],["settings","Sozlamalar"]];
   if(tab==="tests"&&TESTS_SRC!=="local"){ const loc=testsLocal(); if(loc){ TESTS=loc; TESTS_SRC="local"; } }
   $app.innerHTML=header()+back+`<div class="thead"><span class="lvl" style="color:var(--brand)">Admin paneli</span><span class="ar" lang="ar">لوحة الإدارة</span><small>Barcha boshqaruv shu yerda</small></div>
     <div class="seg segadm" role="group" aria-label="Bo'lim">${tabs.map(t=>`<button data-atab="${t[0]}" aria-pressed="${tab===t[0]}">${t[1]}</button>`).join("")}</div>
@@ -1617,6 +1619,7 @@ async function renderAdmin(tab){
   if(tab==="home") html=await adminHomeHTML();
   else if(tab==="topics") html=S.admTopic?adminTopicHTML(S.admTopic):adminTopicsHTML();
   else if(tab==="results") html=await adminResultsHTML();
+  else if(tab==="students") html=await adminStudentsHTML();
   else if(tab==="tests") html=adminTestsHTML();
   else html=adminSettingsHTML();
   if(body()&&S.view==="admin"&&S.adminTab===tab) body().innerHTML=html;
@@ -1930,7 +1933,7 @@ function exSaved(e,r){
 function exFinish(){
   const e=S.ex; if(!e) return; stopTimer();
   if(S.exStream){ S.exStream.getTracks().forEach(t=>t.stop()); S.exStream=null; }
-  e.phase="done"; e.qc=e.res.some(r=>arWords(r.text).length); renderExam(); window.scrollTo(0,0); wakeOff(); histSave(e);
+  e.phase="done"; e.qc=e.res.some(r=>arWords(r.text).length); renderExam(); window.scrollTo(0,0); wakeOff(); histSave(e); try{ detSpeak(e); }catch(x){}
 }
 function exAbort(){
   histFlush();
@@ -1970,6 +1973,14 @@ document.addEventListener("click",e=>{
   switch(t.dataset.act){
     case "admin": renderAdmin(S.admin?(S.adminTab||"home"):"home"); break;
     case "adminlogin": adminLogin(); break;
+    case "tpstu": TP.stu=t.dataset.uid; TP.att=null; renderAdmin("students").then(()=>window.scrollTo(0,0)); break;
+    case "tpback": TP.stu=null; TP.att=null; renderAdmin("students"); break;
+    case "tpatt": TP.att=+t.dataset.i; TP.mx=false; renderAdmin("students").then(()=>window.scrollTo(0,0)); break;
+    case "tpbackstu": TP.att=null; renderAdmin("students"); break;
+    case "tpreload": TP.rows=null; TP.err=""; renderAdmin("students"); break;
+    case "tpmx": TP.mx=!TP.mx; tpRender(); break;
+    case "tpaud": tpAudio(t.dataset.fid,+t.dataset.i); break;
+    case "tplogout": S.admin=false; try{ sessionStorage.removeItem("gapir:admin"); }catch(e){} renderAdmin("students"); break;
     case "adminlogout": adminLogout(); break;
     case "admtopics": S.admTopic=0; renderAdmin("topics"); break;
     case "admtopic": S.admTopic=+t.dataset.id; S.adminTab="topics"; renderAdmin("topics"); window.scrollTo(0,0); break;
@@ -1981,6 +1992,7 @@ document.addEventListener("click",e=>{
     case "admreset": askConfirm("Barcha «javob berdim» belgilari o'chirilsinmi? Savollar saqlanib qoladi.").then(ok=>{ if(ok){ done={}; saveDone(); toast("Belgilar tozalandi"); } }); break;
     case "admpw": { const a=document.getElementById("npw1").value, b=document.getElementById("npw2").value;
       if(a.length<6){ toast("Parol kamida 6 belgi bo'lsin"); break; } if(a!==b){ toast("Parollar mos kelmadi"); break; }
+      const ok0=tkey(); sha256hex("qalam-teacher|"+a).then(nk=>{ if(ok0&&LB.url) tPost({action:"trekey",key:ok0,nkey:nk}).then(j=>{ if(j&&j.ok){ try{ sessionStorage.setItem("qalam:tkey",nk); }catch(e){} } }).catch(()=>{}); });
       pwHash(a).then(h=>{ store.set("qalam:pw",h); document.getElementById("npw1").value=""; document.getElementById("npw2").value=""; toast("Parol o'zgartirildi"); }); break; }
     case "hist": if(S.admin&&S.view!=="myres") renderAdmin("results"); else renderMyRes(); break;
     case "myres": S.mxAll=false; renderMyRes(); break;
@@ -2378,7 +2390,7 @@ function renderHome(){
 const LB={url:"https://script.google.com/macros/s/AKfycbyHE7ftpWNhGzCzHVK0x9noOAbSS_Ml2sv16Ugkau1_yTIEWkr09iH5ufJQsfT_8LG6qg/exec",sheet:"https://docs.google.com/spreadsheets/d/17hYKd4tNe47wrsmGj5HgKAP6PDWPpfeskj5hB_rE94s/edit",rows:null,ts:0,loading:false,err:""};
 async function loadConfig(){
   try{ const r=await fetch("config.json?v="+Date.now(),{cache:"no-store"}); if(r.ok){ const j=await r.json(); if(j.leaderUrl) LB.url=j.leaderUrl; if(j.sheetUrl) LB.sheet=j.sheetUrl; } }catch(e){}
-  lbFlush();
+  lbFlush(); detFlush();
 }
 function me(){
   try{ const u=TG.on&&TG.wa.initDataUnsafe&&TG.wa.initDataUnsafe.user;
@@ -2413,6 +2425,135 @@ async function lbFlush(){
   if(lbQueue().length){ LBF.fail++; clearTimeout(LBF.timer); LBF.timer=setTimeout(lbFlush,Math.min(300000,5000*Math.pow(2,LBF.fail))+Math.random()*5000); }
 }
 window.addEventListener("online",()=>{ LBF.fail=0; lbFlush(); });
+/* ============ O'QITUVCHI PANELI: javoblarni serverga yuborish ============ */
+async function sha256hex(s){ try{ const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s)); return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,"0")).join(""); }catch(e){ return ""; } }
+function tkey(){ try{ return sessionStorage.getItem("qalam:tkey")||""; }catch(e){ return ""; } }
+async function tKeySet(pw){ const k=await sha256hex("qalam-teacher|"+pw); try{ sessionStorage.setItem("qalam:tkey",k); }catch(e){} return k; }
+async function tPost(o,ms){ const r=await fetchT(LB.url,{method:"POST",body:JSON.stringify(o)},ms||30000); return await r.json(); }
+async function tAuth(){ const k=tkey(); if(!k||!LB.url) return null; try{ return await tPost({action:"tauth",key:k},20000); }catch(e){ return null; } }
+function detQ(){ return store.get("qalam:detq",[]); }
+const DETB={};
+function detMist(t,ans){
+  try{ return testDetail(t,ans).filter(d=>!d.ok).map(d=>{ const x=explainQ(t,d.p,d.q,d.v); return (d.q.no||d.qi+1)+": "+(x.yl||x.your||"—")+" → "+(x.rl||x.right); }).join("; ").slice(0,3000); }catch(e){ return ""; }
+}
+function detSend(it,blobs){
+  it.rid=it.rid||Date.now().toString(36)+Math.random().toString(36).slice(2,8); it.ts=it.ts||Date.now();
+  if(blobs&&blobs.length) DETB[it.rid]=blobs;
+  const q=detQ(); q.push(it); store.set("qalam:detq",q.slice(-30)); detFlush();
+}
+function blobB64(b){ return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(String(r.result).split(",")[1]||""); r.onerror=()=>rej(r.error); r.readAsDataURL(b); }); }
+let DETF={busy:false,fail:0,timer:0};
+async function detFlush(){
+  const m=me(); if(!LB.url||!m||DETF.busy) return;
+  if(!detQ().length) return;
+  DETF.busy=true; let sent=0;
+  try{
+    for(const it0 of detQ()){
+      const it=detQ().find(x=>x.rid===it0.rid); if(!it) continue;
+      const bl=DETB[it.rid];
+      if(bl&&it.data&&Array.isArray(it.data.items)){
+        for(const b of bl){
+          const row=it.data.items[b.i]; if(!row||row.file||!b.blob||b.blob.size<500||b.blob.size>9e6) continue;
+          let j=null; try{ j=await tPost({action:"audio",uid:m.uid,ext:b.ext||"webm",mime:b.blob.type||"audio/webm",b64:await blobB64(b.blob)},90000); }catch(e){}
+          if(j&&j.ok&&j.id){ row.file=j.id; const q=detQ(); const k=q.findIndex(x=>x.rid===it.rid); if(k>=0){ q[k]=it; store.set("qalam:detq",q); } }
+          else throw new Error("audio");
+        }
+        delete DETB[it.rid];
+      }
+      let j=null; try{ j=await tPost(Object.assign({action:"det",uid:m.uid,name:m.name,username:m.username||""},it),30000); }catch(e){}
+      if(!(j&&(j.ok||j.err==="bad"))) throw new Error("det");
+      sent++; store.set("qalam:detq",detQ().filter(x=>x.rid!==it.rid));
+    }
+  }catch(e){}
+  finally{ DETF.busy=false; }
+  if(sent) DETF.fail=0;
+  if(detQ().length){ DETF.fail++; clearTimeout(DETF.timer); DETF.timer=setTimeout(detFlush,Math.min(300000,5000*Math.pow(2,DETF.fail))+Math.random()*5000); }
+}
+window.addEventListener("online",()=>{ DETF.fail=0; detFlush(); });
+function detTest(x,r,rec){
+  const t=x.test; const it={skill:t.skill,testId:t.id,title:t.title,score:r.score,raw:r.raw==null?"":r.raw,total:r.total==null?"":r.total,practice:!!t.practice,fm:!!S.fm,secs:rec.secs||0};
+  if(t.skill==="writing"){ it.data={texts:(t.tasks||[]).map((w,i)=>String(x.ans["w"+i]||"").slice(0,6000))}; it.mist=""; }
+  else { it.data={ans:x.ans}; it.mist=detMist(t,x.ans); }
+  detSend(it);
+}
+function detSpeak(e){
+  if(!e||e.hist||e.detSent) return; e.detSent=true;
+  let sc=null; try{ sc=spScore(e); }catch(x){}
+  const items=e.res.map(r=>({part:r.part||"",q:(r.q||[]).join(" / ").slice(0,600),secs:r.secs||0,text:String(r.text||"").slice(0,3000),file:""}));
+  const blobs=e.res.map((r,i)=>({i,blob:r.blob||null,ext:r.ext||"webm"})).filter(b=>b.blob);
+  detSend({skill:"speaking",testId:"speaking-"+(e.lvl||""),title:e.lvl==="MOCK"?"Og'zaki mock":"Gapirish · "+e.lvl,score:sc,raw:"",total:"",practice:false,fm:!!S.fm,secs:e.res.reduce((a,r)=>a+(r.secs||0),0),data:{lvl:e.lvl,items},mist:""},blobs);
+}
+
+/* ============ O'QITUVCHI PANELI: ko'rish ============ */
+const TP={rows:null,err:"",loading:false,stu:null,att:null,q:"",mx:false};
+async function tpLoad(force){
+  if(TP.rows&&!force) return;
+  if(!tkey()){ TP.err="nokey"; return; }
+  TP.loading=true; TP.err="";
+  try{
+    const a=await tAuth(); if(!a||!a.ok){ TP.err=a?"denied":"net"; return; }
+    const j=await tPost({action:"tlist",key:tkey()},45000);
+    if(!j||!j.ok){ TP.err=j&&j.err==="denied"?"denied":"net"; return; }
+    TP.rows=(j.rows||[]).map(r=>{ let d={}; try{ d=JSON.parse(r[10]||"{}"); }catch(e){} return {ts:+new Date(r[0])||+r[0]||0,uid:String(r[1]),name:r[2]||"—",user:r[3]||"",skill:r[4],testId:r[5],title:r[6],score:r[7]===""?null:+r[7],res:r[8],mist:r[9],d}; }).sort((a,b)=>b.ts-a.ts);
+  }catch(e){ TP.err="net"; } finally{ TP.loading=false; }
+}
+function tpStudents(){
+  const m={}; for(const r of TP.rows||[]){ const s=m[r.uid]||(m[r.uid]={uid:r.uid,name:r.name,user:r.user,n:0,last:0,best:{},rows:[]}); s.n++; s.rows.push(r); if(r.ts>s.last){ s.last=r.ts; s.name=r.name; } if(r.score!=null&&!r.d.practice){ s.best[r.skill]=Math.max(s.best[r.skill]||0,r.score); } }
+  return Object.values(m).sort((a,b)=>b.last-a.last);
+}
+const tpDate=ts=>{ const d=new Date(ts); return d.toLocaleDateString()+" "+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0"); };
+const tpSk=k=>k==="full"?"To'liq mock":(SKILLS[k]||{uz:k}).uz;
+function tpScore(r){ const l=lvlOfScore(r.score); if(r.d&&r.d.practice){ const [a,b]=String(r.res||"0/0").split("/").map(Number); return `<span class="mrs ${a*2>=b?"":"no"}"><b>${esc(r.res||"—")}</b><small>mashq</small></span>`; } return `<span class="mrs ${l?"":"no"}"><b>${r.score==null?"—":r.score}</b><small>${r.score==null?"":l||"&lt;B1"}</small></span>`; }
+async function adminStudentsHTML(){
+  await tpLoad(false);
+  if(TP.err==="nokey") return `<div class="card"><p class="note" style="margin:0">O'quvchilar javoblarini ko'rish uchun admin paneliga parol bilan qayta kiring.</p><button class="go alt" data-act="tplogout">Qayta kirish</button></div>`;
+  if(TP.err==="denied") return `<div class="card"><p class="note" style="margin:0;color:var(--danger)">Server bu kalitni tanimadi. Parol o'zgargan bo'lsa, eski parol bilan kirib, keyin yangisiga o'zgartiring.</p></div>`;
+  if(TP.err) return `<div class="card"><p class="note" style="margin:0">Ma'lumotni yuklab bo'lmadi. Internetni tekshiring.</p><button class="go alt" data-act="tpreload">Qayta urinish</button></div>`;
+  if(TP.att!=null) return tpAttemptHTML();
+  if(TP.stu) return tpStudentHTML();
+  const q=norm(TP.q||"").trim(); const list=tpStudents().filter(s=>!q||norm(s.name+" "+s.user).includes(q));
+  return `<div class="bar" style="margin-top:4px"><input id="tpsearch" type="search" placeholder="O'quvchini qidiring" value="${esc(TP.q||"")}"></div>
+    <p class="note" style="margin:4px 2px 10px">${tpStudents().length} ta o'quvchi · ${(TP.rows||[]).length} ta urinish · <button class="ghost" data-act="tpreload" style="padding:2px 10px">↻ Yangilash</button></p>
+    <div class="card mlist">${list.map(s=>`<button class="mrow" data-act="tpstu" data-uid="${esc(s.uid)}" style="--c:var(--accent)"><span class="mric" style="font-weight:800">${esc((Array.from(s.name.trim())[0]||"?").toUpperCase())}</span><span class="mrm"><b>${esc(s.name)}</b><small>${s.user?"@"+esc(s.user)+" · ":""}${s.n} ta urinish · ${tpDate(s.last)}</small></span><span class="tpbest">${SK_ORDER.map(k=>s.best[k]!=null?`<i title="${tpSk(k)}">${tpSk(k)[0]}${s.best[k]}</i>`:"").join("")}</span></button>`).join("")||`<p class="note">Hali javoblar yo'q. O'quvchilar test topshirgach shu yerda paydo bo'ladi.</p>`}</div>`;
+}
+function tpStudentHTML(){
+  const s=tpStudents().find(x=>x.uid===TP.stu); if(!s){ TP.stu=null; return adminStudentsHTML(); }
+  return `<div class="back"><button class="ghost" data-act="tpback">‹ O'quvchilar</button></div>
+    <div class="thead"><span class="lvl" style="color:var(--ink);font-size:1.3rem">${esc(s.name)}</span><small>${s.user?"@"+esc(s.user)+" · ":""}${s.n} ta urinish</small></div>
+    <div class="sgrid">${SK_ORDER.concat(["full"]).map(k=>{ const r=s.rows.filter(x=>x.skill===k&&x.score!=null&&!x.d.practice); return `<div class="scard"><div class="sch">${SK_ICO[k]||""}<b>${tpSk(k)}</b></div><div class="scv">${r.length?Math.max(...r.map(x=>x.score)):"—"}<small>/75</small></div><small class="note">${r.length?r.length+" ta · oxirgi "+r[0].score:"topshirmagan"}</small></div>`; }).join("")}</div>
+    <div class="card mlist">${s.rows.map(r=>`<button class="mrow" data-act="tpatt" data-i="${TP.rows.indexOf(r)}" style="--c:${MR_COL[r.skill]||"var(--accent)"}"><span class="mric">${SK_ICO[r.skill]||""}</span><span class="mrm"><b>${esc(r.title||tpSk(r.skill))}</b><small>${tpDate(r.ts)}${r.res?" · "+esc(r.res)+" to'g'ri":""}${r.mist?" · "+r.mist.split(";").length+" ta xato":""}</small></span>${tpScore(r)}</button>`).join("")}</div>`;
+}
+function tpAttemptHTML(){
+  const r=TP.rows[TP.att]; if(!r){ TP.att=null; return tpStudentHTML(); }
+  const t=r.testId?testById(r.testId):null; let body="";
+  if(r.skill==="speaking"){
+    const its=(r.d.items||[]);
+    body=its.map((x,i)=>`<div class="card"><h3>${esc(x.part?x.part+"-qism":"")} · ${x.secs||0} s</h3><div class="ev ar" lang="ar">${esc(x.q||"")}</div>
+      ${x.file?`<div id="tpa${i}"><button class="ghost" data-act="tpaud" data-fid="${esc(x.file)}" data-i="${i}">▶ Ovozli javobni tinglash</button></div>`:`<p class="note">Ovozli yozuv yuborilmagan.</p>`}
+      ${x.text?`<p class="note" style="margin:8px 0 4px">Avtomatik matn (taxminiy):</p><div class="ev ar" lang="ar">${esc(x.text)}</div>`:""}</div>`).join("")||`<div class="card"><p class="note">Ma'lumot yo'q.</p></div>`;
+  } else if(!t){ body=`<div class="card"><p class="note" style="margin:0">Bu test ilovadan olib tashlangan.</p>${r.mist?`<div class="why"><b>Xatolar:</b> ${esc(r.mist)}</div>`:""}</div>`; }
+  else if(t.skill==="writing"){
+    const tx=r.d.texts||[];
+    body=(t.tasks||[]).map((w,i)=>{ const v=tx[i]||""; const p=wTask(w,v); return `<div class="card"><h3>${esc(w.title||w.id)} · ${p.words} so'z</h3><div class="ev ar" lang="ar">${esc(v||"—").replace(/\n/g,"<br>")}</div>${p.p.dialect.map(d=>`<div class="why"><b>Xato:</b> <span class="ar" lang="ar">${esc(d.said)} → ${esc(d.fix)}</span> — sheva so'zi.</div>`).join("")}${p.p.issues.map(d=>`<div class="why"><b>Xato:</b> <span class="ar" lang="ar">${esc(d.said)} → ${esc(d.fix)}</span> — ${esc(d.why)}</div>`).join("")}${p.tips.map(x=>`<div class="why"><b>Maslahat:</b> ${esc(x)}</div>`).join("")}</div>`; }).join("");
+  } else body=mistakesHTML(t,r.d.ans||{},TP.mx).replace('data-act="mxall"','data-act="tpmx"');
+  return `<div class="back"><button class="ghost" data-act="tpbackstu">‹ ${esc(r.name)}</button></div>
+    <div class="thead"><span class="lvl" style="color:var(--accent);font-size:1.15rem">${esc(r.title||tpSk(r.skill))}</span><small>${esc(r.name)} · ${tpDate(r.ts)}${r.d.secs?" · "+fmt(r.d.secs):""}</small></div>
+    ${r.d.practice?pracHero({raw:+String(r.res).split("/")[0]||0,total:+String(r.res).split("/")[1]||0}):scoreHero(r.score,tpSk(r.skill).toUpperCase()+" · BALL",r.res?r.res+" to'g'ri javob":"")}
+    ${body}`;
+}
+async function tpAudio(fid,i){
+  const box=document.getElementById("tpa"+i); if(!box) return;
+  box.innerHTML=`<p class="note">Yuklanmoqda…</p>`;
+  try{ const j=await tPost({action:"aget",key:tkey(),id:fid},60000);
+    if(!j||!j.ok) throw 0;
+    const bin=atob(j.b64), u8=new Uint8Array(bin.length); for(let k=0;k<bin.length;k++) u8[k]=bin.charCodeAt(k);
+    const url=URL.createObjectURL(new Blob([u8],{type:j.mime||"audio/webm"}));
+    box.innerHTML=`<audio controls src="${url}" style="width:100%"></audio>`;
+  }catch(e){ box.innerHTML=`<p class="note" style="color:var(--danger)">Yozuvni yuklab bo'lmadi.</p><button class="ghost" data-act="tpaud" data-fid="${esc(fid)}" data-i="${i}">Qayta urinish</button>`; }
+}
+function tpRender(){ if(S.view==="admin"&&S.adminTab==="students"){ const y=window.scrollY; renderAdmin("students").then(()=>window.scrollTo(0,y)); } }
+document.addEventListener("input",e=>{ if(e.target&&e.target.id==="tpsearch"){ TP.q=e.target.value; const pos=e.target.selectionStart; renderAdmin("students").then(()=>{ const n=document.getElementById("tpsearch"); if(n){ n.focus(); n.setSelectionRange(pos,pos); } }); } });
+
 function openNameDlg(){
   const d=document.getElementById("namedlg"); if(!d||d.open) return;
   try{ d.showModal(); }catch(e){ d.setAttribute("open",""); }
@@ -2688,6 +2829,7 @@ function submitTest(auto){
     tresAdd(rec); x.result=r; x.rec=rec;
     if(S.fm) S.fm.scores[x.skill]=r.score;
     if(!x.test.practice) lbSend(x.skill,x.test.title,r.score);
+    try{ detTest(x,r,rec); }catch(e){}
     tgHaptic("ok"); renderTestResult();
   };
   if(auto){ go(); return; }
