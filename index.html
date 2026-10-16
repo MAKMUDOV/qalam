@@ -1930,6 +1930,7 @@ document.addEventListener("click",e=>{
     case "rating": renderRating(); break;
     case "lbreload": lbLoad(true).then(()=>{ if(S.view==="rating") renderRating(); }); break;
     case "skill": renderSkill(t.dataset.skill); break;
+    case "tpick": startPicked(t.dataset.skill); break;
     case "tstart": startTest(t.dataset.id); break;
     case "gpick": if(S.tx){ openPick(+t.dataset.pi,+t.dataset.qi); } break;
     case "gset": setPick(+t.dataset.pi,+t.dataset.qi,+t.dataset.v); break;
@@ -1939,7 +1940,7 @@ document.addEventListener("click",e=>{
     case "tapsk": if(S.txAud&&S.admin){ S.txAud.currentTime=Math.max(0,S.txAud.currentTime+(+t.dataset.d)); } break;
     case "tplay": if(S.tx){ const pi=+t.dataset.pi, p=S.tx.test.parts[pi]; S.tx.plays[pi]=(S.tx.plays[pi]||0)+1; t.textContent="🔊 Eshitilmoqda… ("+S.tx.plays[pi]+"/2)"; t.disabled=true; speakAr([p.script],()=>{ const b=document.querySelector('[data-act="tplay"]'); if(b&&S.tx){ b.textContent="🔊 Audioni tinglash ("+S.tx.plays[pi]+"/2)"; b.disabled=S.tx.plays[pi]>=2&&!S.admin; } }); } break;
     case "tsubmit": submitTest(false); break;
-    case "tquit": askConfirm("Test to'xtatilsinmi? Javoblar saqlanmaydi.").then(ok=>{ if(!ok) return; txStop(); ttsStop(); const k=S.tx&&S.tx.skill; S.tx=null; if(S.fm){ S.fm=null; renderHome(); } else renderSkill(k); }); break;
+    case "tquit": askConfirm("Test to'xtatilsinmi? Javoblar saqlanmaydi.").then(ok=>{ if(!ok) return; txStop(); ttsStop(); const k=S.tx&&S.tx.skill; S.tx=null; if(S.fm){ S.fm=null; renderHome(); } else skillBack(k); }); break;
     case "fullmock": renderFullMockIntro(); break;
     case "fmstart": S.fm={i:0,scores:{}}; fmStep(); break;
     case "fmnext": if(S.fm){ S.fm.i++; S.tx=null; fmStep(); } break;
@@ -2168,7 +2169,7 @@ function renderResDetail(id){
     <div class="thead"><span class="lvl" style="color:var(--accent);font-size:1.2rem">${esc(r.title||s.uz)}</span><small>${new Date(r.ts).toLocaleString()}${r.secs?" · "+fmt(r.secs)+" vaqt":""}</small></div>
     ${scoreHero(r.score,(s.uz||"").toUpperCase()+" · BALL",r.total?r.raw+" / "+r.total+" to'g'ri javob":"")}
     ${body}
-    ${t&&r.skill!=="full"?`<button class="go" data-act="tstart" data-id="${esc(t.id)}">Qayta topshirish</button>`:""}`;
+    ${t&&r.skill!=="full"?`<button class="go" data-act="tpick" data-skill="${t.skill}">${SKILLS[t.skill].uz}: yangi test ›</button>`:""}`;
   window.scrollTo(0,0);
 }
 
@@ -2208,7 +2209,7 @@ function brandTap(){
 }
 function skillRowHTML(k,i){
   const s=SKILLS[k], n=k==="speaking"?100:testsOf(k).length;
-  return `<button class="skr sk-${k}" data-act="skill" data-skill="${k}"><span class="ic">${SK_ICO[k]}</span><span class="nm">${s.uz}</span><span class="bd">${k==="speaking"?"100 mavzu":n?n+" ta test":"tez orada"}</span><span class="wm" aria-hidden="true">${SK_ICO[k]}</span></button>`;
+  return `<button class="skr sk-${k}" data-act="skill" data-skill="${k}"><span class="ic">${SK_ICO[k]}</span><span class="nm">${s.uz}</span><span class="bd">${k==="speaking"?"100 mavzu":n?"Boshlash ›":"tez orada"}</span><span class="wm" aria-hidden="true">${SK_ICO[k]}</span></button>`;
 }
 function renderHome(){
   stopTimer(); stopRec(); txStop(); S.mockMode=false; S.topic=null; S.view=""; S.fm=null; S.tx=null;
@@ -2339,12 +2340,32 @@ function spSendOnce(e){
 }
 function renderSpeak(){ S.view="speak"; renderSpeakHome(); }
 /* --- ko'nikma sahifasi --- */
+/* --- Avtomatik test tanlash: ishlanmaganlari birinchi, keyin eng uzoq vaqt oldin ishlangani --- */
+function seenAll(){ return store.get("qalam:seen",{}); }
+function markSeen(id){ const a=seenAll(); a[id]=Date.now(); store.set("qalam:seen",a); }
+function lastUsed(id){ let t=seenAll()[id]||0; for(const r of tresAll()) if(r.testId===id&&r.ts>t) t=r.ts; return t; }
+function pickTest(k,mock){
+  let pool=testsOf(k).filter(t=>t.published!==false); if(mock) pool=pool.filter(t=>!t.mockSkip);
+  if(!pool.length) return null;
+  const fresh=pool.filter(t=>!lastUsed(t.id));
+  if(fresh.length){ const main=fresh.filter(t=>!t.mockSkip); const f=main.length?main:fresh; return f[Math.floor(Math.random()*f.length)]; }
+  const sorted=pool.slice().sort((a,b)=>lastUsed(a.id)-lastUsed(b.id));
+  const oldest=sorted.slice(0,Math.max(1,Math.ceil(sorted.length/3)));
+  return oldest[Math.floor(Math.random()*oldest.length)];
+}
+function startPicked(k){ const t=pickTest(k,false); if(!t){ renderSkillList(k); return; } startTest(t.id); }
+function skillBack(k){ if(isAdminDevice()) renderSkillList(k); else renderHome(); }
 function renderSkill(k){
+  if(k==="speaking"){ renderSpeak(); return; }
+  if(isAdminDevice()) renderSkillList(k); else startPicked(k);
+}
+function renderSkillList(k){
   if(k==="speaking"){ renderSpeak(); return; }
   stopTimer(); stopRec(); txStop(); S.view="skill"; S.skill=k; S.topic=null; S.mockMode=false;
   const s=SKILLS[k], list=testsOf(k), res=tresAll();
   $app.innerHTML=header()+`<div class="back"><button class="ghost" data-act="home">‹ Bosh sahifa</button></div>
     <div class="thead"><span class="lvl" style="color:var(--accent);font-size:1.3rem">${s.uz}</span><small>${s.desc}</small></div>
+    ${list.length?`<button class="go" data-act="tpick" data-skill="${k}">▶ Tasodifiy test (o'quvchilar shunday ochadi)</button><p class="note" style="margin:4px 4px 10px">Ro'yxat faqat sizga (admin) ko'rinadi. O'quvchi bo'limni bosganda test o'zi tanlanadi.</p>`:""}
     ${list.length?`<div class="list">${list.map((t,i)=>{ const r=res.find(x=>x.testId===t.id);
       return `<button class="row" data-act="tstart" data-id="${esc(t.id)}"><span class="n">${i+1}</span><span class="t"><b style="font-size:1rem">${esc(t.title)}</b><small>${t.level?esc(t.level)+" · ":""}${qCount(t)} ${k==="writing"?"vazifa":"savol"} · ${t.time||"—"} daqiqa${t.published===false?" · <b style='color:var(--danger)'>yashirin</b>":""}</small></span><span class="c">${r?`<b>${r.score}/75</b><br>${lvlOfScore(r.score)||"yetarli emas"}`:"Boshlash ›"}</span></button>`; }).join("")}</div>`
     :`<div class="stage"><div class="empty">Bu bo'limda hozircha test yo'q. Testlar tez orada qo'shiladi.</div></div>`}`;
@@ -2370,7 +2391,7 @@ function startTest(id){
   stopTimer(); stopRec(); txStop(); ttsUnlock(); REC.unlock();
   if(S.txAud){ try{ S.txAud.pause(); }catch(e){} S.txAud=null; }
   if(t.audio){ const a=new Audio(audSrc(t.audio)); a.preload="metadata"; a.addEventListener("error",()=>{ a._rt=(a._rt||0)+1; if(a._rt<=2){ const ct=a.currentTime; setTimeout(()=>{ a.src=(a._rt===1?t.audio:audSrc(t.audio))+"?r="+Date.now(); a.load(); try{ a.currentTime=ct; }catch(e){} },1200); } else toast("Audio yuklanmadi — internetni tekshirib, ▶ ni qayta bosing"); }); let lt=0; a.addEventListener("timeupdate",()=>{ const n=Date.now(); if(n-lt>500){ lt=n; tapUpd(); } }); ["play","pause","ended","loadedmetadata"].forEach(e=>a.addEventListener(e,()=>tapUpd(true))); S.txAud=a; }
-  S.view="test"; S.tx={test:t,skill:t.skill,ans:{},part:0,left:((S.fm&&FM_PLAN[t.skill])?Math.max(FM_PLAN[t.skill].min,t.time||0):(t.time||30))*60,t0:Date.now(),plays:{},done:false};
+  markSeen(t.id); S.view="test"; S.tx={test:t,skill:t.skill,ans:{},part:0,left:((S.fm&&FM_PLAN[t.skill])?Math.max(FM_PLAN[t.skill].min,t.time||0):(t.time||30))*60,t0:Date.now(),plays:{},done:false};
   renderTest();
   S.txTimer=setInterval(()=>{ const x=S.tx; if(!x||x.done){ txStop(); return; } x.left--; const c=document.getElementById("txclock"); if(c){ c.textContent=fmt(Math.max(0,x.left)); c.classList.toggle("low",x.left<=60); }
     if(x.left<=0){ txStop(); toast("Vaqt tugadi — javoblar topshirildi"); submitTest(true); } },1000);
@@ -2541,7 +2562,7 @@ function renderTestResult(){
   } else {
     detail=mistakesHTML(t,x.ans,!!S.mxAll);
   }
-  const next=S.fm?`<button class="go" data-act="fmnext">${S.fm.i<3?"Keyingi bo'lim: "+SKILLS[SK_ORDER[S.fm.i+1]].uz+" ›":"Yakuniy natija ›"}</button>`:`<button class="go" data-act="tstart" data-id="${esc(t.id)}">Qayta topshirish</button><button class="go alt" data-act="skill" data-skill="${t.skill}">‹ ${s.uz} bo'limiga qaytish</button>`;
+  const next=S.fm?`<button class="go" data-act="fmnext">${S.fm.i<3?"Keyingi bo'lim: "+SKILLS[SK_ORDER[S.fm.i+1]].uz+" ›":"Yakuniy natija ›"}</button>`:`<button class="go" data-act="tpick" data-skill="${t.skill}">${s.uz}: keyingi test ›</button><button class="go alt" data-act="home">‹ Bosh sahifa</button>`;
   $app.innerHTML=header()+`${S.fm?"":`<div class="back"><button class="ghost" data-act="home">‹ Bosh sahifa</button></div>`}<div class="thead"><span class="lvl" style="color:var(--accent);font-size:1.2rem">${s.uz} · natija</span><small>${esc(t.title)} · ${fmt(x.rec.secs)} vaqt sarflandi</small></div>
     ${scoreHero(r.score,s.uz.toUpperCase()+" · BALL",t.skill==="writing"?"Ball: "+r.exact.toFixed(2)+" / 75 (Task 1 — 33%, Task 2 — 67%)":r.raw+" / "+r.total+" to'g'ri javob"+(r.total!==35?" (35 talik shkalada "+r.eq+" ta)":"")+" · multilevel jadvali bo'yicha")}
     ${S.fm?next:""}${detail}${S.fm?"":next}`;
@@ -2551,7 +2572,7 @@ function renderWr(){ const b=document.getElementById("wrai"); if(b&&S.wr) b.inne
 /* --- to'liq mock --- */
 function renderFullMockIntro(){
   stopTimer(); stopRec(); txStop(); S.view="fmintro"; S.topic=null; S.mockMode=false;
-  const pick=k=>{ const l=testsOf(k).filter(t=>t.published!==false&&!t.mockSkip); return l.length?l[Math.floor(Math.random()*l.length)]:null; };
+  const pick=k=>pickTest(k,true);
   S.fmPick={listening:pick("listening"),reading:pick("reading"),writing:pick("writing")};
   const miss=["listening","reading","writing"].filter(k=>!S.fmPick[k]);
   const mins=["listening","reading","writing"].reduce((a,k)=>a+(S.fmPick[k]?FM_PLAN[k].min:0),0);
@@ -2672,10 +2693,10 @@ function tgTheme(){
 function tgBack(){
   if(S.ex&&S.ex.phase!=="done"&&!S.ex.hist){ askConfirm("Imtihon to'xtatilsinmi? Javoblar saqlanmaydi.").then(ok=>{ if(ok){ exAbort(); if(S.mockMode) renderMock(); else renderExam(); } }); return; }
   if(S.ex&&S.ex.hist){ S.ex=null; if(S.admin&&S.view!=="myres") renderAdmin("results"); else renderMyRes(); return; }
-  if(S.tx&&!S.tx.done){ askConfirm("Test to'xtatilsinmi? Javoblar saqlanmaydi.").then(ok=>{ if(ok){ txStop(); const k=S.tx.skill; S.tx=null; if(S.fm) renderHome(); else renderSkill(k); } }); return; }
+  if(S.tx&&!S.tx.done){ askConfirm("Test to'xtatilsinmi? Javoblar saqlanmaydi.").then(ok=>{ if(ok){ txStop(); const k=S.tx.skill; S.tx=null; if(S.fm) renderHome(); else skillBack(k); } }); return; }
   if(S.view==="admin"&&S.adminTab==="topics"&&S.admTopic){ S.admTopic=0; renderAdmin("topics"); return; }
   if(S.topic||(S.mockMode&&!S.fm)){ S.topic=null; S.ex=null; renderSpeakHome(); return; }
-  if(S.tx&&S.tx.done&&!S.fm){ const k=S.tx.skill; S.tx=null; renderSkill(k); return; }
+  if(S.tx&&S.tx.done&&!S.fm){ const k=S.tx.skill; S.tx=null; skillBack(k); return; }
   S.topic=null; S.ex=null; renderHome();
 }
 function tgSync(){
