@@ -492,6 +492,8 @@ body.pkopen{overflow:hidden}
 .vbcard{background:linear-gradient(135deg,#1d7a3a,#0b3a1b);color:#fff;border-radius:24px;min-height:280px;padding:24px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;cursor:pointer;box-shadow:0 14px 30px rgba(15,77,36,.28);margin-bottom:12px}
 .vbcard .note{color:rgba(255,255,255,.8)}.vbfront{font-size:2.6rem;line-height:1.5;font-weight:700}.vbback{width:100%}.vbtr{font-size:1.5rem;font-weight:800}.vbcard .ev{background:rgba(255,255,255,.12);color:#fff;border-color:transparent}.vbcard mark{background:#ffe066;color:#0b3a1b;border-radius:4px;padding:0 3px}
 .vbbtns{display:grid;grid-template-columns:1fr 1fr;gap:10px}.vbbtns .go{margin:0}
+.rmtog{width:100%;display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:12px 14px;margin:0 0 12px;font:inherit;color:inherit;text-align:left;cursor:pointer;box-shadow:var(--sh)}
+.rmtog .rmt{flex:1;display:flex;flex-direction:column}.rmtog small{color:var(--muted);font-size:.78rem}.rmtog i{flex:none;width:44px;height:26px;border-radius:99px;background:var(--line);position:relative;transition:.2s}.rmtog i::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:.2s}.rmtog.on i{background:var(--accent)}.rmtog.on i::after{left:21px}
 </style>
 </head>
 <body>
@@ -1986,6 +1988,7 @@ document.addEventListener("click",e=>{
     case "adminlogin": adminLogin(); break;
     case "share": if(S.shareData) shareCardOpen(S.shareData); break;
     case "vocab": renderVocab(); break;
+    case "rmtog": { const on=!store.get("qalam:remind",true); store.set("qalam:remind",on); const m=me(); if(m&&LB.url) fetchT(LB.url,{method:"POST",body:JSON.stringify({action:"remind",uid:m.uid,on})},20000).catch(()=>{}); toast(on?"Kunlik eslatma yoqildi":"Kunlik eslatma o'chirildi"); renderMyRes(); break; }
     case "vbstart": renderVbCard(false); break;
     case "vbflip": if(S.view==="vbcard") renderVbCard(true); break;
     case "vbyes": vbAnswer(true); break;
@@ -2330,6 +2333,7 @@ async function renderMyRes(){
   const chips=[["all","Hammasi"]].concat(MR_SK.filter(k=>a.some(r=>r.skill===k)).map(k=>[k,nm(k)]));
   $app.innerHTML=header()+`<div class="back"><button class="ghost" data-act="home">‹ Bosh sahifa</button></div>
     <div class="mhead"><h2>Natijalarim</h2><span>🔒 Faqat sizga ko'rinadi</span></div>
+    ${(()=>{ const m=me(); if(!m||!/^tg\d+$/.test(m.uid)) return ""; const on=store.get("qalam:remind",true); return `<button class="rmtog ${on?"on":""}" data-act="rmtog"><span>🔔</span><span class="rmt"><b>Kunlik eslatma</b><small>${on?"Mashq qilmagan kuni soat 19:00 da bot eslatadi":"O'chirilgan"}</small></span><i aria-hidden="true"></i></button>`; })()}
     ${hero}
     ${overall!=null?`<div class="card mscard"><h3>Daraja shkalasi</h3>${scale}<p class="note" style="margin:8px 0 0">${scaleNote()}</p></div>`:""}
     <div class="msec">Ko'nikmalar</div>
