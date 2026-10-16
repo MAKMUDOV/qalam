@@ -1152,9 +1152,9 @@ function getSample(){
 setTimeout(()=>getSample().then(s=>{ S.hasSample=!!s; if(s){ if(S.ex&&S.ex.phase==="done") renderExam(); } }),1500);
 function aiCardHTML(e,ctx){
   const c=ctx?` data-ctx="${ctx}"`:"";
-  if(e.evState==="loading") return `<div class="card"><h3>AI tekshiruvi</h3><div class="step"><i>…</i><span>Tekshirilmoqda, bir necha soniya kuting…</span></div></div>`;
+  if(e.evState==="loading") return `<div class="card"><h3>AI tekshiruvi</h3><div class="step"><i>…</i><span>AI tekshiryapti — taxminan 30 soniya. Sahifani yopmang…</span></div></div>`;
   const words=e.res.reduce((a,r)=>a+arWords(r.text).length,0);
-  const way=S.hasSample?"Claude ichida ochilgan — kalitsiz ishlaydi.":AI.key?"API kalit orqali ishlaydi.":"Bu oynada AI uchun API kalit kerak (Admin → Sozlamalar). Kalitsiz: nusxalab Claude chatiga yuboring.";
+  const way=S.hasSample?"Claude ichida ochilgan — kalitsiz ishlaydi.":AI.key?"API kalit orqali ishlaydi.":"Bepul, kuniga 15 ta tekshiruv.";
   return `<div class="card"><h3>AI tekshiruvi</h3>
     <p class="note" style="margin:0 0 10px">Javob matni AI ga yuboriladi: xatolar to'g'rilari bilan ko'rsatiladi va daraja (A1–C2) beriladi. Ovoz yuborilmaydi, talaffuz baholanmaydi. ${way}</p>
     ${words<8?`<div class="warn" style="margin:0 0 10px">Matn hali yo'q yoki juda qisqa. Javob matnini maydonga yozing yoki telefon klaviaturasidagi 🎤 bilan arabcha ayting.</div>`:""}
@@ -1248,7 +1248,19 @@ async function aiRun(e){
       if(!AI.key) throw new Error("AI bilan bog'lanib bo'lmadi"+(x&&x.message?": "+x.message:"")+".");
     }
   }
-  if(!AI.key) throw new Error("Bu oynada AI tekshiruvi uchun API kalit kerak (Admin → Sozlamalar → AI baholash). Kalitsiz yo'l: «Claude chatiga yuborish uchun nusxalash».");
+  if(!AI.key){
+    if(!LB.url) throw new Error("AI tekshiruvi hozircha yoqilmagan.");
+    const m=me()||{}; let j=null;
+    try{ const r=await fetchT(LB.url,{method:"POST",body:JSON.stringify({action:"ai",uid:m.uid||"anon",sys:SYS,user:"CANDIDATE DATA (JSON):\n"+payload})},240000); j=await r.json(); }
+    catch(x){ throw new Error(x&&x.name==="AbortError"?"Javob kech keldi. Qayta urinib ko'ring.":"Internetga ulanib bo'lmadi. Qayta urinib ko'ring."); }
+    if(!j||!j.ok){ const er=j&&j.err;
+      if(er==="nokey") throw new Error("AI tekshiruvi hali yoqilmagan (o'qituvchi sozlashi kerak).");
+      if(er==="daylimit") throw new Error("Bugungi AI tekshiruvlar soni tugadi ("+(j.limit||15)+" ta). Ertaga yana tekshira olasiz.");
+      if(er==="busy") throw new Error("Hozir AI band — ko'p o'quvchi tekshiryapti. 1 daqiqadan keyin qayta bosing.");
+      throw new Error("AI xatosi"+(er?" ("+er+(j.code?" "+j.code:"")+")":"")+". Qayta urinib ko'ring."); }
+    S.aiSrv=true;
+    try{ return aiParse(j.text||""); }catch(x){ throw new Error("AI javobini o'qib bo'lmadi. Qayta tekshirib ko'ring."); }
+  }
   const headers={"content-type":"application/json","anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true","x-api-key":AI.key};
   const ac=new AbortController(), to=setTimeout(()=>ac.abort(),90000);
   try{
