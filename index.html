@@ -1720,9 +1720,12 @@ function oneQ(id){
   const all=questions(id).map(x=>x.t), und=all.filter(t=>!isDone(id,t)), sh=und.filter(t=>t.length<=90);
   const pool=sh.length?sh:und.length?und:all; return pool[Math.floor(Math.random()*pool.length)];
 }
+function spSeen(){ return store.get("qalam:sptop",{}); }
+function spFresh(list){ const m=spSeen(); return shuffled(list).sort((x,y)=>(m[x]||0)-(m[y]||0)); }
+function spMark(units){ const m=spSeen(), now=Date.now(); units.forEach(u=>{ if(u.topic) m[u.topic]=now; }); store.set("qalam:sptop",m); }
 function buildMock(){
-  const any=shuffled(topicsWith(1,100,3));
-  let a=shuffled(topicsWith(1,20,1)), b=shuffled(topicsWith(21,50,3)), c=shuffled(topicsWith(51,100,1));
+  const any=spFresh(topicsWith(1,100,3));
+  let a=spFresh(topicsWith(1,20,1)), b=spFresh(topicsWith(21,50,3)), c=spFresh(topicsWith(51,100,1));
   const u=[], mk=(part,i,m,t,topic,prep,sp,intro)=>({part,k:i+1,m,t,topic,prep,sp,intro:i===0?intro:undefined});
   let pairs=a.slice(0,3).map(t=>[t,oneQ(t)]);
   while(pairs.length<3){ const t=any[Math.floor(Math.random()*any.length)]; if(t===undefined) return null; pairs.push([t,oneQ(t)]); }
@@ -1750,7 +1753,7 @@ function mockIntroHTML(){
 }
 function renderMock(){
   stopTimer(); stopRec(); S.mockMode=true; S.topic=null; S.view="";
-  $app.innerHTML=header()+`<div class="back"><button class="ghost" data-act="${S.fm?"home":"speak"}">‹ ${S.fm?"Bosh sahifa":"Gapirish bo'limi"}</button></div>
+  $app.innerHTML=header()+`<div class="back"><button class="ghost" data-act="${S.fm||!isAdminDevice()?"home":"speak"}">‹ ${S.fm||!isAdminDevice()?"Bosh sahifa":"Gapirish bo'limi"}</button></div>
     ${S.fm?`<div class="warn" style="margin:0 0 10px">To'liq mock · 4/4 bo'lim: Gapirish (~15 daqiqa). Tugagach «Yakuniy natija» tugmasini bosing.</div>${planHTML("speaking",true)}`:""}
     <div class="thead"><span class="lvl" style="color:#e60023;font-size:1.2rem">Og'zaki mock · CEFR</span><small>1.1 → 1.2 → 2 → 3 · ~12 daqiqa</small></div>
     <div id="exam">${examHTML()}</div>`;
@@ -1762,6 +1765,7 @@ async function exStart(){
   if(S.mockMode){
     lvl="MOCK"; units=buildMock();
     if(!units||!units.length){ toast("Mock uchun savollar yetarli emas"); return; }
+    spMark(units);
   } else {
     const id=S.topic; lvl=S.exLvl||"B1"; const qs=pickQs(id,lvl), L=EX[lvl];
     if(!qs.length){ toast("Bu mavzuda savol yo'q"); return; }
@@ -2209,7 +2213,7 @@ function brandTap(){
 }
 function skillRowHTML(k,i){
   const s=SKILLS[k], n=k==="speaking"?100:testsOf(k).length;
-  return `<button class="skr sk-${k}" data-act="skill" data-skill="${k}"><span class="ic">${SK_ICO[k]}</span><span class="nm">${s.uz}</span><span class="bd">${k==="speaking"?"100 mavzu":n?"Boshlash ›":"tez orada"}</span><span class="wm" aria-hidden="true">${SK_ICO[k]}</span></button>`;
+  return `<button class="skr sk-${k}" data-act="skill" data-skill="${k}"><span class="ic">${SK_ICO[k]}</span><span class="nm">${s.uz}</span><span class="bd">${k==="speaking"?(isAdminDevice()?"100 mavzu":"Boshlash ›"):n?"Boshlash ›":"tez orada"}</span><span class="wm" aria-hidden="true">${SK_ICO[k]}</span></button>`;
 }
 function renderHome(){
   stopTimer(); stopRec(); txStop(); S.mockMode=false; S.topic=null; S.view=""; S.fm=null; S.tx=null;
@@ -2356,7 +2360,7 @@ function pickTest(k,mock){
 function startPicked(k){ const t=pickTest(k,false); if(!t){ renderSkillList(k); return; } startTest(t.id); }
 function skillBack(k){ if(isAdminDevice()) renderSkillList(k); else renderHome(); }
 function renderSkill(k){
-  if(k==="speaking"){ renderSpeak(); return; }
+  if(k==="speaking"){ if(isAdminDevice()) renderSpeak(); else { if(S.ex&&!S.ex.hist) exAbort(); S.ex=null; renderMock(); } return; }
   if(isAdminDevice()) renderSkillList(k); else startPicked(k);
 }
 function renderSkillList(k){
@@ -2695,7 +2699,7 @@ function tgBack(){
   if(S.ex&&S.ex.hist){ S.ex=null; if(S.admin&&S.view!=="myres") renderAdmin("results"); else renderMyRes(); return; }
   if(S.tx&&!S.tx.done){ askConfirm("Test to'xtatilsinmi? Javoblar saqlanmaydi.").then(ok=>{ if(ok){ txStop(); const k=S.tx.skill; S.tx=null; if(S.fm) renderHome(); else skillBack(k); } }); return; }
   if(S.view==="admin"&&S.adminTab==="topics"&&S.admTopic){ S.admTopic=0; renderAdmin("topics"); return; }
-  if(S.topic||(S.mockMode&&!S.fm)){ S.topic=null; S.ex=null; renderSpeakHome(); return; }
+  if(S.topic||(S.mockMode&&!S.fm&&isAdminDevice())){ S.topic=null; S.ex=null; renderSpeakHome(); return; }
   if(S.tx&&S.tx.done&&!S.fm){ const k=S.tx.skill; S.tx=null; skillBack(k); return; }
   S.topic=null; S.ex=null; renderHome();
 }
