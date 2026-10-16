@@ -2391,16 +2391,12 @@ function header(){
   return `<header class="top">
     <div class="brand" data-act="brand" role="button" tabindex="0" style="cursor:pointer"><span class="ar" lang="ar">قلم</span>
       <h1>Qalam<small>Arab tili CEFR tayyorlov</small></h1></div>
-    ${adm?`<div class="tools">
-      <button class="ghost" data-act="random" title="Tasodifiy savol" aria-label="Tasodifiy savol">🎲</button>
-      <button class="ghost" data-act="voice" title="Ovoz sozlamalari" aria-label="Ovoz">🔊</button>
-      <button class="ghost adm" data-act="admin">${S.admin?"⚙ Admin":"🔒 Admin"}</button>
-    </div>`:""}</header>`;
+</header>`;
 }
 let brandTaps=[];
 function brandTap(){
-  const now=Date.now(); brandTaps=brandTaps.filter(t=>now-t<2500); brandTaps.push(now);
-  if(brandTaps.length>=5){ brandTaps=[]; renderAdmin("home"); return; }
+  const now=Date.now(); brandTaps=brandTaps.filter(t=>now-t<700); brandTaps.push(now);
+  if(brandTaps.length>=2){ brandTaps=[]; if((S.tx&&!S.tx.done)||(S.fm&&!S.fm.saved)||(S.ex&&S.ex.phase!=="done"&&!S.ex.hist)) return; renderAdmin("home"); return; }
   if(S.view!==""||S.topic||S.mockMode){ if((S.tx&&!S.tx.done)||(S.fm&&!S.fm.saved)||(S.ex&&S.ex.phase!=="done"&&!S.ex.hist)) return; S.topic=null; renderHome(); }
 }
 function skillRowHTML(k,i){
