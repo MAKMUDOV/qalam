@@ -2371,8 +2371,7 @@ function renderHome(){
     <div class="seg hubseg" role="group" aria-label="Bo'lim"><button data-act="htab" data-tab="parts" aria-pressed="${tab==="parts"}">Bo'limlar</button><button data-act="htab" data-tab="full" aria-pressed="${tab==="full"}">To'liq</button></div>
     <p class="note hubnote">ⓘ Mashq uchun mock imtihon — natija rasmiy emas.</p>
     ${tab==="parts"?`<div class="skrows">${SK_HOME.map(skillRowHTML).join("")}</div>`
-      :`<button class="skr sk-full" data-act="fullmock"><span class="ic">${SK_ICO.full}</span><span class="nm">To'liq mock<small>Tinglash → O'qish → Yozish → Gapirish</small></span><span class="bd">${last?last.score+"/75":"Boshlash"}</span><span class="wm" aria-hidden="true">${SK_ICO.full}</span></button>
-        <p class="note" style="margin:10px 4px">To'rt bo'lim ketma-ket topshiriladi. Oxirida umumiy ball (75 dan) va daraja chiqadi: ${scaleNote()}.</p>`}
+      :`<button class="skr sk-full" data-act="fullmock"><span class="ic">${SK_ICO.full}</span><span class="nm">To'liq mock<small>Tinglash → O'qish → Yozish → Gapirish</small></span><span class="bd">${last?last.score+"/75":"Boshlash"}</span><span class="wm" aria-hidden="true">${SK_ICO.full}</span></button>`}
     <div class="hubbtns"><button class="histbtn" data-act="rating"><span>${SK_ICO.trophy}</span> Reyting</button><button class="histbtn" data-act="myres"><span>${SK_ICO.chart}</span> Natijalarim</button></div>`;
 }
 /* --- reyting --- */
