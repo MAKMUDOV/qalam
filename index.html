@@ -2494,7 +2494,10 @@ async function tpLoad(force){
     const a=await tAuth(); if(!a||!a.ok){ TP.err=a?"denied":"net"; return; }
     const j=await tPost({action:"tlist",key:tkey()},45000);
     if(!j||!j.ok){ TP.err=j&&j.err==="denied"?"denied":"net"; return; }
-    TP.rows=(j.rows||[]).map(r=>{ let d={}; try{ d=JSON.parse(r[10]||"{}"); }catch(e){} return {ts:+new Date(r[0])||+r[0]||0,uid:String(r[1]),name:r[2]||"—",user:r[3]||"",skill:r[4],testId:r[5],title:r[6],score:r[7]===""?null:+r[7],res:r[8],mist:r[9],d}; }).sort((a,b)=>b.ts-a.ts);
+    const det=(j.rows||[]).map(r=>{ let d={}; try{ d=JSON.parse(r[10]||"{}"); }catch(e){} return {ts:+new Date(r[0])||+r[0]||0,uid:String(r[1]),name:r[2]||"—",user:r[3]||"",skill:r[4],testId:r[5],title:r[6],score:r[7]===""?null:+r[7],res:r[8],mist:r[9],d}; });
+    let lbr=[]; try{ await lbLoad(true); lbr=(LB.rows||[]).map(r=>({ts:+r[0]||0,uid:String(r[1]),name:r[2]||"—",user:"",skill:r[4],testId:"",title:tpSk(r[4]),score:r[5]===""||r[5]==null?null:+r[5],res:"",mist:"",d:{old:true}})); }catch(e){}
+    lbr=lbr.filter(o=>!det.some(x=>x.uid===o.uid&&x.skill===o.skill&&Math.abs(x.ts-o.ts)<180000));
+    TP.rows=det.concat(lbr).sort((a,b)=>b.ts-a.ts);
   }catch(e){ TP.err="net"; } finally{ TP.loading=false; }
 }
 function tpStudents(){
@@ -2521,12 +2524,13 @@ function tpStudentHTML(){
   return `<div class="back"><button class="ghost" data-act="tpback">‹ O'quvchilar</button></div>
     <div class="thead"><span class="lvl" style="color:var(--ink);font-size:1.3rem">${esc(s.name)}</span><small>${s.user?"@"+esc(s.user)+" · ":""}${s.n} ta urinish</small></div>
     <div class="sgrid">${SK_ORDER.concat(["full"]).map(k=>{ const r=s.rows.filter(x=>x.skill===k&&x.score!=null&&!x.d.practice); return `<div class="scard"><div class="sch">${SK_ICO[k]||""}<b>${tpSk(k)}</b></div><div class="scv">${r.length?Math.max(...r.map(x=>x.score)):"—"}<small>/75</small></div><small class="note">${r.length?r.length+" ta · oxirgi "+r[0].score:"topshirmagan"}</small></div>`; }).join("")}</div>
-    <div class="card mlist">${s.rows.map(r=>`<button class="mrow" data-act="tpatt" data-i="${TP.rows.indexOf(r)}" style="--c:${MR_COL[r.skill]||"var(--accent)"}"><span class="mric">${SK_ICO[r.skill]||""}</span><span class="mrm"><b>${esc(r.title||tpSk(r.skill))}</b><small>${tpDate(r.ts)}${r.res?" · "+esc(r.res)+" to'g'ri":""}${r.mist?" · "+r.mist.split(";").length+" ta xato":""}</small></span>${tpScore(r)}</button>`).join("")}</div>`;
+    <div class="card mlist">${s.rows.map(r=>`<button class="mrow" data-act="tpatt" data-i="${TP.rows.indexOf(r)}" style="--c:${MR_COL[r.skill]||"var(--accent)"}"><span class="mric">${SK_ICO[r.skill]||""}</span><span class="mrm"><b>${esc(r.title||tpSk(r.skill))}</b><small>${tpDate(r.ts)}${r.res?" · "+esc(r.res)+" to'g'ri":""}${r.mist?" · "+r.mist.split(";").length+" ta xato":""}${r.d.old?" · faqat ball":""}</small></span>${tpScore(r)}</button>`).join("")}</div>`;
 }
 function tpAttemptHTML(){
   const r=TP.rows[TP.att]; if(!r){ TP.att=null; return tpStudentHTML(); }
   const t=r.testId?testById(r.testId):null; let body="";
-  if(r.skill==="speaking"){
+  if(r.d.old){ body=`<div class="card"><p class="note" style="margin:0">Bu urinish o'qituvchi paneli ishga tushishidan oldin topshirilgan, shuning uchun faqat ball saqlangan. Yangi urinishlarda savollar, xatolar, matn va ovozli javoblar ko'rinadi.</p></div>`; }
+  else if(r.skill==="speaking"){
     const its=(r.d.items||[]);
     body=its.map((x,i)=>`<div class="card"><h3>${esc(x.part?x.part+"-qism":"")} · ${x.secs||0} s</h3><div class="ev ar" lang="ar">${esc(x.q||"")}</div>
       ${x.file?`<div id="tpa${i}"><button class="ghost" data-act="tpaud" data-fid="${esc(x.file)}" data-i="${i}">▶ Ovozli javobni tinglash</button></div>`:`<p class="note">Ovozli yozuv yuborilmagan.</p>`}
