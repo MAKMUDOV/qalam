@@ -615,6 +615,7 @@ function toast(msg){
 /* ============ KO'RINISHLAR ============ */
 
 function renderSpeakHome(){
+  S.spList=true;
   stopTimer(); stopRec(); S.mockMode=false; S.view="speak"; S.topic=null;
   const tot = {beg:0,mid:0,adv:0};
   const q = norm(S.query.trim());
@@ -1847,7 +1848,7 @@ function mockIntroHTML(){
 }
 function renderMock(){
   stopTimer(); stopRec(); S.mockMode=true; S.topic=null; S.view="";
-  $app.innerHTML=header()+`<div class="back"><button class="ghost" data-act="${S.fm||!isAdminDevice()?"home":"speak"}">‹ ${S.fm||!isAdminDevice()?"Bosh sahifa":"Gapirish bo'limi"}</button></div>
+  $app.innerHTML=header()+`<div class="back"><button class="ghost" data-act="${S.fm||!S.spList?"home":"speak"}">‹ ${S.fm||!S.spList?"Bosh sahifa":"Gapirish bo'limi"}</button></div>
     ${S.fm?`<div class="warn" style="margin:0 0 10px">To'liq mock · 4/4 bo'lim: Gapirish (~15 daqiqa). Tugagach «Yakuniy natija» tugmasini bosing.</div>${planHTML("speaking",true)}`:""}
     <div class="thead"><span class="lvl" style="color:#e60023;font-size:1.2rem">Og'zaki mock · CEFR</span><small>1.1 → 1.2 → 2 → 3 · ~12 daqiqa</small></div>
     <div id="exam">${examHTML()}</div>`;
@@ -1988,6 +1989,7 @@ document.addEventListener("click",e=>{
     case "adminlogin": adminLogin(); break;
     case "share": if(S.shareData) shareCardOpen(S.shareData); break;
     case "vocab": renderVocab(); break;
+    case "slist": if(t.dataset.skill==="speaking") renderSpeak(); else renderSkillList(t.dataset.skill); break;
     case "rmtog": { const on=!store.get("qalam:remind",true); store.set("qalam:remind",on); const m=me(); if(m&&LB.url) fetchT(LB.url,{method:"POST",body:JSON.stringify({action:"remind",uid:m.uid,on})},20000).catch(()=>{}); toast(on?"Kunlik eslatma yoqildi":"Kunlik eslatma o'chirildi"); renderMyRes(); break; }
     case "vbstart": renderVbCard(false); break;
     case "vbflip": if(S.view==="vbcard") renderVbCard(true); break;
@@ -2821,18 +2823,20 @@ function pickTest(k,mock){
   return oldest[Math.floor(Math.random()*oldest.length)];
 }
 function startPicked(k){ const t=pickTest(k,false); if(!t){ renderSkillList(k); return; } startTest(t.id); }
-function skillBack(k){ if(isAdminDevice()) renderSkillList(k); else renderHome(); }
+function skillBack(k){ if(S.fromList&&isAdminDevice()) renderSkillList(k); else renderHome(); }
 function renderSkill(k){
-  if(k==="speaking"){ if(isAdminDevice()) renderSpeak(); else { if(S.ex&&!S.ex.hist) exAbort(); S.ex=null; renderMock(); } return; }
-  if(isAdminDevice()) renderSkillList(k); else startPicked(k);
+  S.fromList=false; S.spList=false;
+  if(k==="speaking"){ if(S.ex&&!S.ex.hist) exAbort(); S.ex=null; renderMock(); return; }
+  startPicked(k);
 }
 function renderSkillList(k){
+  S.fromList=true;
   if(k==="speaking"){ renderSpeak(); return; }
   stopTimer(); stopRec(); txStop(); S.view="skill"; S.skill=k; S.topic=null; S.mockMode=false;
   const s=SKILLS[k], list=testsOf(k), res=tresAll();
-  $app.innerHTML=header()+`<div class="back"><button class="ghost" data-act="home">‹ Bosh sahifa</button></div>
+  $app.innerHTML=header()+`<div class="back"><button class="ghost" data-atab="tests">‹ Admin · Testlar</button></div>
     <div class="thead"><span class="lvl" style="color:var(--accent);font-size:1.3rem">${s.uz}</span><small>${s.desc}</small></div>
-    ${list.length?`<button class="go" data-act="tpick" data-skill="${k}">▶ Tasodifiy test (o'quvchilar shunday ochadi)</button><p class="note" style="margin:4px 4px 10px">Ro'yxat faqat sizga (admin) ko'rinadi. O'quvchi bo'limni bosganda test o'zi tanlanadi.</p>`:""}
+    ${list.length?`<button class="go" data-act="tpick" data-skill="${k}">▶ Tasodifiy test (o'quvchilar shunday ochadi)</button><p class="note" style="margin:4px 4px 10px">Bu ro'yxat faqat admin panelidan ochiladi. Bosh sahifadan bo'limga kirilganda test o'zi tanlanadi.</p>`:""}
     ${list.length?`<div class="list">${list.map((t,i)=>{ const r=res.find(x=>x.testId===t.id);
       return `<button class="row" data-act="tstart" data-id="${esc(t.id)}"><span class="n">${i+1}</span><span class="t"><b style="font-size:1rem">${esc(t.title)}</b><small>${t.level?esc(t.level)+" · ":""}${qCount(t)} ${k==="writing"?"vazifa":"savol"} · ${t.time||"—"} daqiqa${t.published===false?" · <b style='color:var(--danger)'>yashirin</b>":""}</small></span><span class="c">${r?`<b>${r.score}/75</b><br>${lvlOfScore(r.score)||"yetarli emas"}`:"Boshlash ›"}</span></button>`; }).join("")}</div>`
     :`<div class="stage"><div class="empty">Bu bo'limda hozircha test yo'q. Testlar tez orada qo'shiladi.</div></div>`}`;
@@ -3097,7 +3101,9 @@ function renderFmFinal(){
 function adminTestsHTML(){
   const src={local:"Shu qurilmadagi o'zgartirilgan nusxa (hali hammaga ko'rinmaydi)",server:"Saytdagi tests.json fayli (hammaga ko'rinadi)",builtin:"Ilovaga o'rnatilgan testlar"}[TESTS_SRC];
   const c=cfg();
-  return `<div class="card" style="margin-top:0"><h3>Testlar manbai</h3><p class="note" style="margin:0 0 8px">${src}.</p>
+  return `<div class="card" style="margin-top:0"><h3>Ko'nikmalar bo'yicha testlar ro'yxati</h3><p class="note" style="margin:0 0 8px">O'quvchilar (va siz) bo'limni bosganda test o'zi tanlanadi. Kerakli testni o'zingiz tanlash uchun ro'yxatni shu yerdan oching.</p>
+      <div class="acts">${["reading","listening","writing","speaking"].map(k=>`<button class="ghost" data-act="slist" data-skill="${k}">${SKILLS[k].ico} ${SKILLS[k].uz}<small>${k==="speaking"?"100 mavzu va mashq rejimlari":testsOf(k).length+" ta test"}</small></button>`).join("")}</div></div>
+    <div class="card"><h3>Testlar manbai</h3><p class="note" style="margin:0 0 8px">${src}.</p>
       ${TESTS_SRC==="local"?`<div class="warn" style="margin:0 0 10px">O'zgarishlar hozircha faqat shu qurilmada. Hamma o'quvchilarga ko'rinishi uchun pastdagi «tests.json» ni GitHub'dagi qalam repozitoriyasiga yuklang (yoki menga yuboring).</div>`:""}
       <div class="acts"><button class="ghost" data-act="texport">⬇ tests.json eksport<small>GitHub'ga yuklash uchun</small></button>${TESTS_SRC==="local"?`<button class="ghost" data-act="treset">↺ Saytdagi versiyaga qaytish<small>Mahalliy o'zgarishlarni bekor qilish</small></button>`:""}</div>
       <div id="texp"></div></div>
@@ -3171,7 +3177,7 @@ function tgBack(){
   if(S.ex&&S.ex.hist){ S.ex=null; if(S.admin&&S.view!=="myres") renderAdmin("results"); else renderMyRes(); return; }
   if(S.tx&&!S.tx.done){ askConfirm("Test to'xtatilsinmi? Javoblar saqlanmaydi.").then(ok=>{ if(ok){ txStop(); const k=S.tx.skill; S.tx=null; if(S.fm) renderHome(); else skillBack(k); } }); return; }
   if(S.view==="admin"&&S.adminTab==="topics"&&S.admTopic){ S.admTopic=0; renderAdmin("topics"); return; }
-  if(S.topic||(S.mockMode&&!S.fm&&isAdminDevice())){ S.topic=null; S.ex=null; renderSpeakHome(); return; }
+  if(S.topic||(S.mockMode&&!S.fm&&S.spList)){ S.topic=null; S.ex=null; renderSpeakHome(); return; }
   if(S.tx&&S.tx.done&&!S.fm){ const k=S.tx.skill; S.tx=null; skillBack(k); return; }
   S.topic=null; S.ex=null; renderHome();
 }
