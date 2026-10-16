@@ -451,6 +451,23 @@ body.pkopen{overflow:hidden}
 .mrs{flex:none;min-width:48px;display:flex;flex-direction:column;align-items:center;padding:4px 8px;border-radius:12px;background:color-mix(in srgb,var(--accent) 12%,transparent);color:var(--accent)}.mrs b{font-size:1.05rem;line-height:1.1}.mrs small{font-size:.66rem;font-weight:800}
 .mrs.no{background:color-mix(in srgb,var(--danger) 12%,transparent);color:var(--danger)}
 .mmore{width:100%;margin:6px 0 8px}
+
+.mcard.mg-reading{background:linear-gradient(135deg,#0f4d24,#1d7a3a)}
+.mcard.mg-listening{background:linear-gradient(135deg,#3fd35c,#2fb52a);--fg:#06210c}
+.mcard.mg-speaking{background:linear-gradient(135deg,#155e75,#0e7490)}
+.mcard.mg-writing{background:linear-gradient(135deg,#7a3e8e,#9d4fb5)}
+.mcard.mg-full{background:linear-gradient(135deg,#ff3b57,#e60023 55%,#b8001c);grid-column:1/-1}
+.mcard[class*="mg-"]{--fg:#fff;color:var(--fg);border-color:transparent;box-shadow:0 8px 20px rgba(15,40,25,.14)}
+.mcard.mg-listening{--fg:#06210c}
+.mcard[class*="mg-"]::before{display:none}
+.mcard[class*="mg-"]::after{content:"";position:absolute;right:-30px;top:-30px;width:110px;height:110px;border-radius:50%;background:rgba(255,255,255,.08);pointer-events:none}
+.mcard[class*="mg-"] .mic{background:rgba(255,255,255,.18);color:var(--fg)}.mcard.mg-listening .mic{background:rgba(0,0,0,.1)}
+.mcard[class*="mg-"] .mcempty span,.mcard[class*="mg-"] .mcn span,.mcard[class*="mg-"] .mcn small,.mcard[class*="mg-"] .mcs,.mcard[class*="mg-"] .mspark.none{color:var(--fg);opacity:.82}
+.mcard[class*="mg-"] .mcempty em{background:rgba(255,255,255,.22);color:var(--fg)}.mcard.mg-listening .mcempty em{background:rgba(0,0,0,.14)}
+.mcard[class*="mg-"] .mlvl{background:rgba(255,255,255,.22);color:var(--fg)}.mcard.mg-listening .mlvl{background:rgba(0,0,0,.14)}
+.mcard[class*="mg-"] .mlvl.no{background:rgba(255,255,255,.92);color:#b3261e}
+.mcard[class*="mg-"] .mcn em.up,.mcard[class*="mg-"] .mcn em.dn,.mcard[class*="mg-"] .mcn em.eq{color:var(--fg)}
+.mcard[class*="mg-"]:hover{border-color:transparent;filter:brightness(1.05)}
 @media (max-width:360px){.mgrid{grid-template-columns:1fr}.mhring{width:92px;height:92px}.mhring svg{width:92px;height:92px}}
 </style>
 </head>
@@ -2238,11 +2255,11 @@ async function renderMyRes(){
     :`<div class="mhero ${lv?"":"low"}"><div class="mhtop"><div class="mhring">${mrRing(overall,108,10,"#ffffff","rgba(255,255,255,.2)")}<div><b>${overall}</b><small>/75</small></div></div>
       <div class="mhtx"><span class="mkick">TAXMINIY DARAJANGIZ</span><b class="mlv">${lv||"B1 dan past"}</b><p>${next?`<b>${next.l}</b> uchun yana <b>${next.n}</b> ball kerak`:"Eng yuqori daraja — barakalla!"}</p><small>${have.length?have.length+" ta ko'nikmaning oxirgi natijasi asosida":"To'liq mock natijasi asosida"}</small></div></div>
       <div class="mhst"><div><b>${a.length}</b><span>urinish</span></div><div><b>${best<0?"—":best}</b><span>eng yuqori</span></div><div><b>${days}</b><span>faol kun</span></div></div></div>`;
-  const card=k=>{ const x=st[k], col=MR_COL[k], tr=x.last!=null&&x.prev!=null?x.last-x.prev:null, l=lvlOfScore(x.last);
+  const card=k=>{ const x=st[k], dk=k==="listening", col=dk?"#06210c":"#ffffff", trk=dk?"rgba(0,0,0,.15)":"rgba(255,255,255,.22)", tr=x.last!=null&&x.prev!=null?x.last-x.prev:null, l=lvlOfScore(x.last);
     const act=k==="full"?`data-act="fullmock"`:k==="speaking"?`data-act="skill" data-skill="speaking"`:`data-act="tpick" data-skill="${k}"`;
-    return `<button class="mcard" style="--c:${col}" ${act}><div class="mch"><span class="mic">${SK_ICO[k]}</span><b>${nm(k)}</b>${l!=null&&x.last!=null?`<span class="mlvl ${l?"":"no"}">${l||"&lt;B1"}</span>`:""}</div>
+    return `<button class="mcard mg-${k}" ${act}><div class="mch"><span class="mic">${SK_ICO[k]}</span><b>${nm(k)}</b>${l!=null&&x.last!=null?`<span class="mlvl ${l?"":"no"}">${l||"&lt;B1"}</span>`:""}</div>
       ${x.last==null?`<div class="mcempty"><span>Hali topshirilmagan</span><em>Boshlash ›</em></div>${k==="speaking"&&spk?`<small class="mcs">${spk} ta ovozli yozuv pastda</small>`:""}`
-      :`<div class="mcm"><div class="mcring">${mrRing(x.last,58,6,col,"var(--line)")}<b>${x.last}</b></div><div class="mcn"><span>oxirgi natija</span>${tr!=null?`<em class="${tr>0?"up":tr<0?"dn":"eq"}">${tr>0?"▲ +"+tr:tr<0?"▼ "+tr:"= 0"}</em>`:""}<small>eng yuqori ${x.best} · ${x.n} ta</small></div></div>${mrSpark(x.v,col)}`}</button>`; };
+      :`<div class="mcm"><div class="mcring">${mrRing(x.last,58,6,col,trk)}<b>${x.last}</b></div><div class="mcn"><span>oxirgi natija</span>${tr!=null?`<em class="${tr>0?"up":tr<0?"dn":"eq"}">${tr>0?"▲ +"+tr:tr<0?"▼ "+tr:"= 0"}</em>`:""}<small>eng yuqori ${x.best} · ${x.n} ta</small></div></div>${mrSpark(x.v,col)}`}</button>`; };
   // urinishlar ro'yxati (filtr + kunlar bo'yicha)
   const flt=a.filter(r=>f==="all"||r.skill===f);
   let lastDay="", rows="";
