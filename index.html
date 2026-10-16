@@ -2451,7 +2451,6 @@ function lbBodyHTML(per,sk){
     :`<div class="empty">Bu davrda reytingda hali hech kim yo'q. Birinchi bo'ling!</div>`;
   return `${staleNote}${banner}${mycard}
     <div class="lbt"><div class="lbr hd"><span class="rk"></span><span class="av"></span><span class="nm">Ism</span><span class="av2">O'rtacha</span><span class="bs">Eng yuqori</span><span class="ct">Test</span></div>${rows}</div>
-    <p class="note" style="margin:10px 4px">Ball 75 dan. ${scaleNote()}. O'rin o'rtacha ball bo'yicha; test topshirgan har bir o'quvchi reytingda ko'rinadi.</p>
     ${S.admin&&LB.sheet?`<a class="dl" href="${esc(LB.sheet)}" target="_blank" rel="noopener">📊 Google Sheets'da ochish</a>`:""}`;
 }
 document.addEventListener("change",ev=>{ const t=ev.target; if(!t) return;
