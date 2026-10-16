@@ -2588,7 +2588,7 @@ async function renderRating(){
   stopTimer(); stopRec(); txStop(); S.view="rating"; S.topic=null; S.mockMode=false;
   const per=S.lbPer||"all", sk=S.lbSk||"all";
   const shell=body=>header()+`<div class="back"><button class="ghost" data-act="home">‹ Bosh sahifa</button></div>
-    <div class="thead" style="border:0;margin-bottom:6px"><span class="lvl" style="color:var(--ink);font-size:1.5rem;display:flex;gap:8px;align-items:center">${SK_ICO.trophy} Imtihon reytingi</span><small>Barcha o'quvchilarning natijalari va o'rinlari. Javoblaringiz faqat o'zingizda qoladi.</small></div>
+    <div class="thead" style="border:0;margin-bottom:6px"><span class="lvl" style="color:var(--ink);font-size:1.5rem;display:flex;gap:8px;align-items:center">${SK_ICO.trophy} Imtihon reytingi</span></div>
     <div class="lbf"><label>Davr<select id="lbper">${[["week","Bu hafta"],["month","Bu oy"],["all","Hammasi"]].map(o=>`<option value="${o[0]}" ${per===o[0]?"selected":""}>${o[1]}</option>`).join("")}</select></label>
       <label>Ko'nikma<select id="lbsk">${[["all","Barchasi"],["listening","Tinglash"],["reading","O'qish"],["writing","Yozish"],["speaking","Gapirish"],["full","To'liq mock"]].map(o=>`<option value="${o[0]}" ${sk===o[0]?"selected":""}>${o[1]}</option>`).join("")}</select></label></div>
     <div id="lbbody">${body}</div>`;
