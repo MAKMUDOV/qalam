@@ -469,6 +469,17 @@ body.pkopen{overflow:hidden}
 .mcard[class*="mg-"] .mcn em.up,.mcard[class*="mg-"] .mcn em.dn,.mcard[class*="mg-"] .mcn em.eq{color:var(--fg)}
 .mcard[class*="mg-"]:hover{border-color:transparent;filter:brightness(1.05)}
 @media (max-width:360px){.mgrid{grid-template-columns:1fr}.mhring{width:92px;height:92px}.mhring svg{width:92px;height:92px}}
+
+.lbr{grid-template-columns:34px 34px minmax(0,1fr) auto!important;padding:10px 12px}
+.lbsc{display:flex;align-items:center;gap:8px;justify-self:end;padding:6px 6px 6px 12px;border-radius:12px;font-variant-numeric:tabular-nums}
+.lbsc b{font-size:1.15rem;font-weight:800;min-width:24px;text-align:right}
+.lbsc small{font-size:.72rem;font-weight:800;padding:3px 8px;border-radius:8px;background:rgba(255,255,255,.25);min-width:36px;text-align:center}
+.lbsc.c1{background:#0f4d24;color:#fff}.lbsc.b2{background:#1d7a3a;color:#fff}.lbsc.b1{background:#3fd35c;color:#06210c}.lbsc.b1 small{background:rgba(0,0,0,.12)}
+.lbsc.no{background:color-mix(in srgb,var(--danger) 13%,transparent);color:var(--danger)}.lbsc.no small{background:color-mix(in srgb,var(--danger) 16%,transparent)}
+.lbsc.hd{padding:0;background:none;font-size:.72rem;color:var(--muted)}
+.lbme .ring span{font-size:1.5rem}
+@media (max-width:420px){.lbr{grid-template-columns:30px 28px minmax(0,1fr) auto!important;gap:6px;padding:9px 8px}}
+.lbr .rk{justify-self:center!important;max-width:28px;min-width:28px;aspect-ratio:1;padding:0!important;box-sizing:border-box}
 </style>
 </head>
 <body>
@@ -2416,7 +2427,7 @@ function lbAgg(per,skill){
   const users={};
   for(const r of LB.rows||[]){ const [ts,uid,name,un,sk,sc]=r; if(+ts<from) continue; if(skill!=="all"&&sk!==skill) continue; const v=Math.max(0,Math.min(75,+sc||0));
     const u=users[uid]||(users[uid]={uid,name:name||un||"Foydalanuvchi",sum:0,n:0,best:0}); u.sum+=v; u.n++; u.best=Math.max(u.best,v); if(name) u.name=name; }
-  return Object.values(users).map(u=>Object.assign(u,{avg:Math.round(u.sum/u.n*10)/10})).sort((a,b)=>b.avg-a.avg||b.best-a.best||b.n-a.n);
+  return Object.values(users).map(u=>Object.assign(u,{avg:Math.round(u.sum/u.n*10)/10})).sort((a,b)=>b.best-a.best||b.avg-a.avg);
 }
 const LB_MIN=1;
 async function renderRating(){
@@ -2440,17 +2451,17 @@ function lbBodyHTML(per,sk){
   const myRank=mine?ranked.indexOf(mine)+1:0;
   const local=tresAll().filter(r=>sk==="all"||r.skill===sk);
   const myN=mine?mine.n:0, need=Math.max(0,LB_MIN-myN);
-  const lvlTxt=v=>lvlOfScore(v)||"&lt;B1";
-  const ini=n=>esc((String(n).trim()[0]||"?").toUpperCase());
-  const mycard=mine?`<div class="lbme"><div class="ring" style="--p:${Math.round(mine.avg/75*100)}"><span>${ini(mine.name)}</span></div>
-      <div class="mi"><small>${SK_ICO.trophy} ${myRank?myRank+"-O'RIN · "+ranked.length+" TA ISHTIROKCHI":"O'RTACHA BALL"}</small><b>${esc(mine.name)}</b><span class="chip">${lvlTxt(mine.avg)}</span><small>Eng yuqori ${mine.best}/75 · ${mine.n} ta test</small></div>
-      <div class="pc">${Math.round(mine.avg)}<small>/75</small></div></div>`
-    :`<div class="lbme"><div class="ring" style="--p:0"><span>${m?ini(m.name):"?"}</span></div><div class="mi"><small>O'RTACHA BALL</small><b>${m?esc(m.name):"Siz"}</b><small>${local.length?"Natijalaringiz reytingga yuborilmoqda…":"Hali test topshirmagansiz."}</small></div><div class="pc">—</div></div>`;
-  const banner=need>0?`<div class="lbnote"><span>Test: ${myN}</span><b>Reytingda ko'rinish uchun yana ${need} ta test topshiring.</b></div>`:"";
-  const rows=ranked.length?ranked.map((u,i)=>`<div class="lbr ${m&&u.uid===m.uid?"me":""}"><span class="rk ${i<3?"top t"+(i+1):""}">${i+1}</span><span class="av">${ini(u.name)}</span><span class="nm">${esc(u.name)}${m&&u.uid===m.uid?" <small>(siz)</small>":""}</span><span class="av2"><b>${u.avg}</b><small>${lvlTxt(u.avg)}</small></span><span class="bs">${u.best}</span><span class="ct">${u.n}</span></div>`).join("")
+  const lvlTxt=v=>lvlOfScore(v)||"&lt;B1", lvlCls=v=>({C1:"c1",B2:"b2",B1:"b1"})[lvlOfScore(v)]||"no";
+  const ini=n=>esc((Array.from(String(n).trim())[0]||"?").toUpperCase());
+  const mycard=mine?`<div class="lbme"><div class="ring" style="--p:${Math.round(mine.best/75*100)}"><span>${myRank||ini(mine.name)}</span></div>
+      <div class="mi"><small>${SK_ICO.trophy} ${myRank?myRank+"-O'RIN · "+ranked.length+" TA ISHTIROKCHI":"BALLINGIZ"}</small><b>${esc(mine.name)}</b><span class="chip">${lvlTxt(mine.best)}</span></div>
+      <div class="pc">${mine.best}<small>/75</small></div></div>`
+    :`<div class="lbme"><div class="ring" style="--p:0"><span>${m?ini(m.name):"?"}</span></div><div class="mi"><small>BALLINGIZ</small><b>${m?esc(m.name):"Siz"}</b><small>${local.length?"Natijalaringiz reytingga yuborilmoqda…":"Hali test topshirmagansiz."}</small></div><div class="pc">—</div></div>`;
+  const banner=need>0?`<div class="lbnote"><b>Reytingda ko'rinish uchun test topshiring.</b></div>`:"";
+  const rows=ranked.length?ranked.map((u,i)=>`<div class="lbr ${m&&u.uid===m.uid?"me":""}"><span class="rk ${i<3?"top t"+(i+1):""}">${i+1}</span><span class="av">${ini(u.name)}</span><span class="nm">${esc(u.name)}${m&&u.uid===m.uid?" <small>(siz)</small>":""}</span><span class="lbsc ${lvlCls(u.best)}"><b>${u.best}</b><small>${lvlTxt(u.best)}</small></span></div>`).join("")
     :`<div class="empty">Bu davrda reytingda hali hech kim yo'q. Birinchi bo'ling!</div>`;
   return `${staleNote}${banner}${mycard}
-    <div class="lbt"><div class="lbr hd"><span class="rk"></span><span class="av"></span><span class="nm">Ism</span><span class="av2">O'rtacha</span><span class="bs">Eng yuqori</span><span class="ct">Test</span></div>${rows}</div>
+    <div class="lbt"><div class="lbr hd"><span class="rk"></span><span class="av"></span><span class="nm">Ism</span><span class="lbsc hd">Ball · daraja</span></div>${rows}</div>
     ${S.admin&&LB.sheet?`<a class="dl" href="${esc(LB.sheet)}" target="_blank" rel="noopener">📊 Google Sheets'da ochish</a>`:""}`;
 }
 document.addEventListener("change",ev=>{ const t=ev.target; if(!t) return;
