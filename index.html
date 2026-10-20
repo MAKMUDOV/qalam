@@ -1153,7 +1153,16 @@ Rules:
 - Write every explanation in Uzbek (Latin script). Use Arabic script only for quotes and corrections.
 Return ONLY valid JSON (no markdown, no comments) in exactly this shape:
 {"insufficient":false,"level":"A1|A2|B1|B2|C1|C2","plus":false,"level_note":"1-2 sentences in Uzbek","criteria":{"ravonlik":{"score":0,"note":""},"grammatika":{"score":0,"note":""},"lugat":{"score":0,"note":""},"bogllanish":{"score":0,"note":""},"mazmun":{"score":0,"note":""},"fusha":{"score":0,"note":""}},"strengths":["..."],"weak":["..."],"mistakes":[{"answer":1,"said":"exact Arabic quote","fix":"corrected Arabic","why":"short rule in Uzbek"}],"per_answer":[{"answer":1,"comment":"1-2 sentences in Uzbek"}],"advice":["..."]}
-Scores are 0-10 integers. Be consistent and reproducible: the same answer must always receive the same scores. The level MUST agree with the average of the criteria scores: average 9-10 → C1 (C2 only for near-native work), 7-8 → B2, 5-6 → B1, 3-4 → A2, 0-2 → A1. Be strict: do not give B2 or C1 unless the text clearly shows that level. Give at most 12 mistakes, the most instructive ones first, and at most 4 advice items.`;
+Scores are 0-10 integers. Be consistent and reproducible: apply the rubric below mechanically, so that the same answer always gets the same scores.
+SCORING RUBRIC (integers 0-10):
+- "grammatika": count clear grammar errors (agreement, verb forms and tenses, written case endings, prepositions, word order, wrong definite article) per 100 words: 0-1 → 10; 2 → 9; 3 → 8; 4-5 → 7; 6-7 → 6; 8-9 → 5; 10-12 → 4; 13-15 → 3; 16-20 → 2; more → 1; no usable text → 0.
+- "lugat": 9-10 rich, precise, idiomatic MSA with almost no repetition; 7-8 good range, a few imprecise words; 5-6 adequate everyday words, noticeable repetition; 3-4 basic, frequent repetition or wrong word choice; 0-2 very limited.
+- "bogllanish": 9-10 clear structure and varied linking (لذلك، بالإضافة إلى ذلك، من ناحية أخرى، في الختام); 7-8 logical with some linking words; 5-6 mostly linear with simple links (و، لكن، لأن); 3-4 weak links, a list of sentences; 0-2 no organisation.
+- "vazifa" / "mazmun": compare with every prompt/question: all points answered with relevant development → 9-10; most points → 7-8; partly answered or clearly too short → 5-6; largely off-topic or very short → 3-4; not done → 0-2. A missing or empty answer must lower this score.
+- "imlo" (writing): spelling errors (hamza, taa marbuta, alif maqsura, wrong letters) per 100 words: 0-1 → 10; 2-3 → 8; 4-6 → 6; 7-10 → 4; more → 2.
+- "fusha": 10 pure MSA; 8 a few colloquial or foreign words; 6 several; 4 frequent dialect; 2 mostly dialect or another language.
+- "ravonlik" (speaking): use words per minute and how much of each time limit was used: 90+ wpm and full answers → 9-10; 70-89 → 7-8; 50-69 → 5-6; 30-49 → 3-4; below 30 → 0-2.
+Then set "level" from the average of all criteria: 8.7 or more → C1 (C2 only for near-native work), 6.8-8.6 → B2, 5.1-6.7 → B1, 2.7-5.0 → A2, below 2.7 → A1. Give at most 12 mistakes, the most instructive ones first, and at most 4 advice items.`;
 const CRIT=[["ravonlik","Ravonlik","الطلاقة"],["grammatika","Grammatika","السلامة اللغوية"],["lugat","Lug'at va tuzilma","المفردات والتراكيب"],["bogllanish","Fikr bog'lanishi","تناسق الأفكار"],["mazmun","Mazmun rivoji","تطوير المضمون"],["fusha","Fusha (uslub)","الفصحى"]];
 const LVLS=["A1","A2","B1","B2","C1","C2"];
 const arWords=t=>String(t||"").split(/\s+/).filter(w=>/[\u0600-\u06FF]/.test(w));
@@ -1347,7 +1356,7 @@ async function aiRun(e){
   if(!AI.key){
     if(!LB.url) throw new Error("AI tekshiruvi hozircha yoqilmagan.");
     const m=me()||{}; let j=null;
-    try{ const r=await fetchT(LB.url,{method:"POST",body:JSON.stringify({action:"ai",uid:m.uid||"anon",sys:SYS,user:"CANDIDATE DATA (JSON):\n"+payload})},240000); j=await r.json(); }
+    try{ const r=await fetchT(LB.url,{method:"POST",body:JSON.stringify({action:"ai",uid:m.uid||"anon",sys:SYS,json:true,strict:true,user:"CANDIDATE DATA (JSON):\n"+payload})},240000); j=await r.json(); }
     catch(x){ throw new Error(x&&x.name==="AbortError"?"Javob kech keldi. Qayta urinib ko'ring.":"Internetga ulanib bo'lmadi. Qayta urinib ko'ring."); }
     if(!j||!j.ok){ const er=j&&j.err;
       if(er==="nokey") throw new Error("AI tekshiruvi hali yoqilmagan (o'qituvchi sozlashi kerak).");
@@ -1440,7 +1449,11 @@ async function aiEvaluate(e,rr){
   if(e.res.reduce((a,r)=>a+arWords(r.text).length,0)<8){ e.evErr="Tekshirish uchun matn juda qisqa. Javob matnini to'ldiring."; rr(); if(e.onFail) e.onFail(); return; }
   e.evState="loading"; e.evErr=""; rr();
   try{
-    const ev=await aiRun(e);
+    const rs=await Promise.allSettled([aiRun(e),aiRun(e)]);
+    const ok=rs.filter(r=>r.status==="fulfilled").map(r=>r.value);
+    if(!ok.length) throw rs[0].reason;
+    const ev=ok.length>1?aiMerge(ok[0],ok[1]):ok[0];
+    if(!ev.insufficient){ ev.score75=aiScore75(ev,e); ev.level=lvl75(ev.score75); ev.plus=false; }
     e.ev=ev; e.evState=""; e.evErr=""; rr(); if(e===S.ex) histSave(e); spSendOnce(e); if(e.onEval) e.onEval(ev);
     setTimeout(()=>{ const h=document.querySelector(".evhero"); if(h) h.scrollIntoView({behavior:"smooth",block:"start"}); },50);
   }catch(x){ e.evState=""; e.evErr=(x&&x.message)||"Xato yuz berdi."; rr(); if(e.onFail) e.onFail(); }
@@ -3091,9 +3104,9 @@ function renderTestResult(){
   const x=S.tx, t=x.test, r=x.result, s=SKILLS[t.skill];
   let detail="";
   if(t.skill==="writing"){
-    if(!x.wr){ x.wr={kind:"writing",lvl:"WRITING",sys:AI_WSYS,crit:WCRIT,res:(t.tasks||[]).map((w,i)=>({q:[w.prompt],text:x.ans["w"+i]||"",secs:x.rec.secs,limit:(t.time||60)*60,part:w.id}))};
+    if(!x.wr){ x.wr={kind:"writing",lvl:"WRITING",sys:AI_WSYS,crit:WCRIT,res:(t.tasks||[]).map((w,i)=>({q:[w.prompt],text:x.ans["w"+i]||"",secs:x.rec.secs,limit:(t.time||60)*60,part:w.id,min:w.min||50,weight:w.weight||1/(t.tasks||[1]).length}))};
       const wr=x.wr, sendLb=sc=>{ if(wr.lbDone) return; wr.lbDone=true; try{ detTest(x,r,x.rec); }catch(e){} if(!t.practice) lbSend("writing",t.title,sc); };
-      wr.onEval=ev=>{ const sc=aiScore75(ev); if(sc==null){ wr.onFail(); return; } r.score=sc; r.ai=true; x.rec.score=sc;
+      wr.onEval=ev=>{ const sc=aiScore75(ev,wr); if(sc==null){ wr.onFail(); return; } r.score=sc; r.ai=true; x.rec.score=sc;
         const a=tresAll(), it=a.find(z=>z.id===x.rec.id); if(it){ it.score=sc; it.ai=true; store.set("qalam:tres",a); }
         if(S.fm&&S.fm.scores) S.fm.scores.writing=sc; sendLb(sc); if(S.tx===x&&S.view==="tresult") renderTestResult(); };
       wr.onFail=()=>{ sendLb(r.score); if(S.tx===x&&S.view==="tresult") renderTestResult(); };
@@ -3146,18 +3159,31 @@ function fmStep(){
     f.scores[k]=null; f.i++; }
   renderFmFinal();
 }
-/* AI bahosidan 75 ballik ball: mezonlar o'rtachasi, daraja oralig'iga mos ravishda */
-function aiScore75(ev){
+/* AI bahosidan 75 ballik ball: mezonlar o'rtachasi × bajarilgan qism (bo'sh vazifa/javob = 0) */
+function lvl75(sc){ const c=cfg(); return sc>=c.c1?"C1":sc>=c.b2?"B2":sc>=c.pass?"B1":sc>=20?"A2":"A1"; }
+function aiDone(e){
+  if(!e||!e.res||!e.res.length) return 1;
+  if(e.kind==="writing"){ let tw=0,got=0; e.res.forEach(r=>{ const w=r.weight||1/e.res.length, min=r.min||50, n=arWords(r.text).length; tw+=w; got+=w*Math.min(1,n/(min*0.8)); }); return tw?got/tw:1; }
+  return e.res.reduce((a,r)=>a+(arWords(r.text).length>=5?1:arWords(r.text).length/5),0)/e.res.length;
+}
+function aiScore75(ev,e){
   if(!ev||ev.insufficient) return null;
   const cs=Object.values(ev.criteria||{}).map(c=>Math.max(0,Math.min(10,+((c||{}).score)||0))); if(!cs.length) return null;
-  const avg=cs.reduce((a,b)=>a+b,0)/cs.length, c=cfg();
-  let sc=Math.round(avg/10*75);
-  const band={A1:[0,19],A2:[20,c.pass-1],B1:[c.pass,c.b2-1],B2:[c.b2,c.c1-1],C1:[c.c1,75],C2:[c.c1,75]}[ev.level];
-  if(band) sc=Math.max(band[0],Math.min(band[1],sc));
-  return Math.max(0,Math.min(75,sc));
+  const avg=cs.reduce((a,b)=>a+b,0)/cs.length;
+  return Math.max(0,Math.min(75,Math.round(avg/10*75*aiDone(e))));
+}
+/* Ikki mustaqil AI bahosini birlashtirish — tasodifiy farqni kamaytiradi */
+function aiMerge(a,b){
+  if(!a||a.insufficient) return b||a; if(!b||b.insufficient) return a;
+  const out=JSON.parse(JSON.stringify(a)); out.criteria={};
+  const keys=new Set(Object.keys(a.criteria||{}).concat(Object.keys(b.criteria||{})));
+  keys.forEach(k=>{ const x=(a.criteria||{})[k]||{}, y=(b.criteria||{})[k]||{}; const xs=+x.score, ys=+y.score;
+    const sc=isNaN(xs)?ys:isNaN(ys)?xs:Math.round((xs+ys)/2*10)/10; out.criteria[k]={score:sc,note:x.note||y.note||""}; });
+  const seen=new Set(); out.mistakes=(a.mistakes||[]).concat(b.mistakes||[]).filter(m=>{ const k=String(m.said||"").replace(/\s+/g," ").trim(); if(!k||seen.has(k)) return false; seen.add(k); return true; }).slice(0,12);
+  return out;
 }
 function spScore(e){
-  if(e.ev&&!e.ev.insufficient) return aiScore75(e.ev);
+  if(e.ev&&!e.ev.insufficient) return aiScore75(e.ev,e);
   const q=quickCheck(e); if(q.insufficient) return null;
   const answered=q.per.filter(p=>p.words>=3).length/Math.max(1,e.res.length);
   let sc=Math.round((20+5*q.pts)*(0.3+0.7*answered));
@@ -3241,7 +3267,16 @@ Rules: judge only what is written; never invent words; quote mistakes exactly. D
 Write every explanation in Uzbek (Latin script); Arabic only for quotes and corrections.
 Return ONLY valid JSON in exactly this shape:
 {"insufficient":false,"level":"A1|A2|B1|B2|C1|C2","plus":false,"level_note":"1-2 sentences in Uzbek","criteria":{"vazifa":{"score":0,"note":""},"grammatika":{"score":0,"note":""},"lugat":{"score":0,"note":""},"bogllanish":{"score":0,"note":""},"imlo":{"score":0,"note":""},"fusha":{"score":0,"note":""}},"strengths":["..."],"weak":["..."],"mistakes":[{"answer":1,"said":"exact Arabic quote","fix":"corrected Arabic","why":"short rule in Uzbek"}],"per_answer":[{"answer":1,"comment":"1-2 sentences in Uzbek"}],"advice":["..."]}
-Scores are 0-10 integers. Be consistent and reproducible: the same answer must always receive the same scores. The level MUST agree with the average of the criteria scores: average 9-10 → C1 (C2 only for near-native work), 7-8 → B2, 5-6 → B1, 3-4 → A2, 0-2 → A1. Be strict: do not give B2 or C1 unless the text clearly shows that level. At most 12 mistakes and 4 advice items.`;
+Scores are 0-10 integers. Be consistent and reproducible: apply the rubric below mechanically, so that the same answer always gets the same scores.
+SCORING RUBRIC (integers 0-10):
+- "grammatika": count clear grammar errors (agreement, verb forms and tenses, written case endings, prepositions, word order, wrong definite article) per 100 words: 0-1 → 10; 2 → 9; 3 → 8; 4-5 → 7; 6-7 → 6; 8-9 → 5; 10-12 → 4; 13-15 → 3; 16-20 → 2; more → 1; no usable text → 0.
+- "lugat": 9-10 rich, precise, idiomatic MSA with almost no repetition; 7-8 good range, a few imprecise words; 5-6 adequate everyday words, noticeable repetition; 3-4 basic, frequent repetition or wrong word choice; 0-2 very limited.
+- "bogllanish": 9-10 clear structure and varied linking (لذلك، بالإضافة إلى ذلك، من ناحية أخرى، في الختام); 7-8 logical with some linking words; 5-6 mostly linear with simple links (و، لكن، لأن); 3-4 weak links, a list of sentences; 0-2 no organisation.
+- "vazifa" / "mazmun": compare with every prompt/question: all points answered with relevant development → 9-10; most points → 7-8; partly answered or clearly too short → 5-6; largely off-topic or very short → 3-4; not done → 0-2. A missing or empty answer must lower this score.
+- "imlo" (writing): spelling errors (hamza, taa marbuta, alif maqsura, wrong letters) per 100 words: 0-1 → 10; 2-3 → 8; 4-6 → 6; 7-10 → 4; more → 2.
+- "fusha": 10 pure MSA; 8 a few colloquial or foreign words; 6 several; 4 frequent dialect; 2 mostly dialect or another language.
+- "ravonlik" (speaking): use words per minute and how much of each time limit was used: 90+ wpm and full answers → 9-10; 70-89 → 7-8; 50-69 → 5-6; 30-49 → 3-4; below 30 → 0-2.
+Then set "level" from the average of all criteria: 8.7 or more → C1 (C2 only for near-native work), 6.8-8.6 → B2, 5.1-6.7 → B1, 2.7-5.0 → A2, below 2.7 → A1. At most 12 mistakes and 4 advice items.`;
 
 /* ============ ZAXIRA: natijalar va lug'at serverda (telefon almashsa ham tiklanadi) ============ */
 const BK_KEYS=["qalam:tres","qalam:vocab","qalam:seen","qalam:sptop","gapir:done","qalam:remind"];
