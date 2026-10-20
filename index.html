@@ -586,7 +586,7 @@ const levelOf = id => id<=20?"beg":id<=50?"mid":"adv";
 const mem = {};
 const store = {
   get(k,def){ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):def; }catch(e){ return k in mem?mem[k]:def; } },
-  set(k,v){ mem[k]=v; try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} }
+  set(k,v){ mem[k]=v; try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} try{ if(BK_KEYS.indexOf(k)>=0) bkSoon(); }catch(e){} }
 };
 let extra = store.get("gapir:extra",{});   // {id:[text]}
 let done  = store.get("gapir:done",{});    // {id:{text:true}}
@@ -1249,8 +1249,11 @@ function aiCardHTML(e,ctx){
   const words=e.res.reduce((a,r)=>a+arWords(r.text).length,0);
   const way=S.hasSample?"Claude ichida ochilgan — kalitsiz ishlaydi.":AI.key?"API kalit orqali ishlaydi.":"Bepul, kuniga 15 ta tekshiruv.";
   return `<div class="card"><h3>AI tekshiruvi</h3>
-    <p class="note" style="margin:0 0 10px">Javob matni AI ga yuboriladi: xatolar to'g'rilari bilan ko'rsatiladi va daraja (A1–C2) beriladi. Ovoz yuborilmaydi, talaffuz baholanmaydi. ${way}</p>
-    ${words<8?`<div class="warn" style="margin:0 0 10px">Matn hali yo'q yoki juda qisqa. Javob matnini maydonga yozing yoki telefon klaviaturasidagi 🎤 bilan arabcha ayting.</div>`:""}
+    <p class="note" style="margin:0 0 10px">Javob matni AI ga yuboriladi: xatolar to'g'rilari bilan ko'rsatiladi va daraja (A1–C2) beriladi. Matn bo'lmasa, yozuvingiz avtomatik matnga aylantiriladi. Talaffuz baholanmaydi. ${way}</p>
+    ${e.sttState==="loading"?`<div class="step"><i>🎧</i><span>Ovoz matnga aylantirilmoqda… ${e.sttN||0}/${e.sttT||0}</span></div>`:""}
+    ${e.sttErr?`<div class="warn" style="margin:0 0 10px">${esc(e.sttErr)}</div>`:""}
+    ${e.sttState!=="loading"&&e.kind!=="writing"&&(e.res||[]).some(r=>r.blob&&!String(r.text||"").trim())?`<button class="go alt" data-act="sttgo"${c}>🎧 Ovozdan matnni olish</button>`:""}
+    ${words<8&&e.sttState!=="loading"?`<div class="warn" style="margin:0 0 10px">Matn hali yo'q yoki juda qisqa. Javob matnini maydonga yozing yoki telefon klaviaturasidagi 🎤 bilan arabcha ayting.</div>`:""}
     ${e.evErr?`<div class="warn" style="margin:0 0 10px">${esc(e.evErr)}</div>`:""}
     <button class="go" data-act="aieval"${c}>🧠 ${e.ev?"Qayta tekshirish":"AI bilan tekshirish"}</button>
     <button class="go alt" data-act="aicopy"${c}>📋 Claude chatiga yuborish uchun nusxalash</button>
@@ -1374,8 +1377,48 @@ async function aiRun(e){
     throw x;
   } finally { clearTimeout(to); }
 }
+/* ---- Ovozdan matn (serverdagi Gemini orqali, hamma telefonda ishlaydi) ---- */
+async function toWav16(blob){
+  const AC=window.AudioContext||window.webkitAudioContext, OAC=window.OfflineAudioContext||window.webkitOfflineAudioContext;
+  if(!AC||!OAC) return null;
+  const ab=await blob.arrayBuffer(); const ac=new AC(); let buf;
+  try{ buf=await new Promise((res,rej)=>{ const pr=ac.decodeAudioData(ab,res,rej); if(pr&&pr.then) pr.then(res,rej); }); } finally{ try{ ac.close(); }catch(x){} }
+  const sr=16000, dur=Math.min(buf.duration,240), len=Math.max(1,Math.ceil(dur*sr));
+  const off=new OAC(1,len,sr), src=off.createBufferSource(); src.buffer=buf; src.connect(off.destination); src.start(0);
+  const out=await new Promise((res,rej)=>{ off.oncomplete=ev=>res(ev.renderedBuffer); const pr=off.startRendering(); if(pr&&pr.then) pr.then(res,rej); });
+  const d=out.getChannelData(0), n=d.length, ab2=new ArrayBuffer(44+n*2), v=new DataView(ab2);
+  const ws=(o,s)=>{ for(let i=0;i<s.length;i++) v.setUint8(o+i,s.charCodeAt(i)); };
+  ws(0,"RIFF"); v.setUint32(4,36+n*2,true); ws(8,"WAVE"); ws(12,"fmt "); v.setUint32(16,16,true); v.setUint16(20,1,true); v.setUint16(22,1,true);
+  v.setUint32(24,sr,true); v.setUint32(28,sr*2,true); v.setUint16(32,2,true); v.setUint16(34,16,true); ws(36,"data"); v.setUint32(40,n*2,true);
+  let peak=0; for(let i=0;i<n;i++) peak=Math.max(peak,Math.abs(d[i]));
+  const g=peak>0.02&&peak<0.5?0.9/peak:1;
+  for(let i=0;i<n;i++){ const s=Math.max(-1,Math.min(1,d[i]*g)); v.setInt16(44+i*2,s<0?s*0x8000:s*0x7fff,true); }
+  return new Blob([ab2],{type:"audio/wav"});
+}
+const sttNeed=e=>e&&e.kind!=="writing"&&(e.res||[]).some(r=>r.blob&&!String(r.text||"").trim()&&!r.sttTried);
+async function sttFill(e,rr){
+  if(!sttNeed(e)||e.sttState==="loading") return;
+  if(!LB.url){ return; }
+  const m=me()||{}; const todo=e.res.filter(r=>r.blob&&!String(r.text||"").trim()&&!r.sttTried);
+  e.sttState="loading"; e.sttErr=""; e.sttN=0; e.sttT=todo.length; rr&&rr();
+  for(const r of todo){
+    r.sttTried=true;
+    try{
+      let b=null; try{ b=await toWav16(r.blob); }catch(x){ b=null; }
+      const blob=b||r.blob, mime=b?"audio/wav":((r.blob.type||"").split(";")[0]||"audio/webm");
+      const j=await tPost({action:"stt",uid:m.uid||"anon",mime,b64:await blobB64(blob)},120000);
+      if(j&&j.ok){ if(!String(r.text||"").trim()) r.text=String(j.text||""); }
+      else{ const er=j&&j.err; e.sttErr=er==="daylimit"?"Bugungi ovozdan matn olish limiti tugadi. Matnni o'zingiz yozing yoki ertaga urinib ko'ring.":er==="busy"?"Server band — birozdan keyin «Ovozdan matnni olish» ni qayta bosing.":"Ovozdan matn olinmadi. Qayta urinib ko'ring yoki matnni o'zingiz yozing."; if(er==="daylimit") break; r.sttTried=false; }
+    }catch(x){ e.sttErr="Internet bilan muammo — «Ovozdan matnni olish» ni qayta bosing."; r.sttTried=false; }
+    e.sttN++; if(e.sttState==="loading"&&rr) rr();
+  }
+  e.sttState=""; e.qc=e.res.some(r=>arWords(r.text).length);
+  if(e===S.ex) histSaveSoon(); rr&&rr();
+}
 async function aiEvaluate(e,rr){
   if(!e||e.evState==="loading") return;
+  if(e.sttState==="loading"){ toast("Ovoz matnga aylantirilmoqda — biroz kuting"); return; }
+  if(sttNeed(e)) await sttFill(e,rr);
   if(e.res.reduce((a,r)=>a+arWords(r.text).length,0)<8){ e.evErr="Tekshirish uchun matn juda qisqa. Javob matnini to'ldiring."; rr(); return; }
   e.evState="loading"; e.evErr=""; rr();
   try{
@@ -1414,7 +1457,8 @@ document.addEventListener("change",ev=>{
   if(r.url&&r.blob) try{ URL.revokeObjectURL(r.url); }catch(x){}
   r.blob=f; r.url=URL.createObjectURL(f); r.size=f.size; r.warn="";
   r.ext=((f.name||"").split(".").pop()||"m4a").toLowerCase().replace(/[^a-z0-9]/g,"").slice(0,5)||"m4a";
-  histSaveSoon(); renderExam(); toast("Yozuv qo'shildi");
+  r.sttTried=false; histSaveSoon(); renderExam(); toast("Yozuv qo'shildi");
+  if(!String(r.text||"").trim()) sttFill(S.ex,()=>{ renderExam(); });
 });
 
 /* ============ ADMIN ============ */
@@ -1948,6 +1992,7 @@ function exFinish(){
   const e=S.ex; if(!e) return; stopTimer();
   if(S.exStream){ S.exStream.getTracks().forEach(t=>t.stop()); S.exStream=null; }
   e.phase="done"; e.qc=e.res.some(r=>arWords(r.text).length); renderExam(); window.scrollTo(0,0); wakeOff(); histSave(e); try{ detSpeak(e); }catch(x){}
+  if(sttNeed(e)) sttFill(e,()=>{ if(S.ex===e) renderExam(); });
 }
 function exAbort(){
   histFlush();
@@ -2038,6 +2083,7 @@ document.addEventListener("click",e=>{
     case "tgpost": tgSetup("post"); break;
     case "aicopy": { const [ce,rr]=ctxOf(t); aiCopy(ce,rr); break; }
     case "aieval": { const [ce,rr]=ctxOf(t); aiEvaluate(ce,rr); break; }
+    case "sttgo": { const [ce,rr]=ctxOf(t); (ce&&ce.res||[]).forEach(r=>{ if(!String(r.text||"").trim()) r.sttTried=false; }); sttFill(ce,rr); break; }
     case "qcheck": { const [ce,rr]=ctxOf(t); if(ce){ ce.qc=true; rr(); spSendOnce(ce); } break; }
     case "aiset": if(S.admin) openAI(); else { toast("AI sozlamalari admin panelida"); renderAdmin("settings"); } break;
     case "mock": renderMock(); break;
@@ -2070,7 +2116,7 @@ document.addEventListener("click",e=>{
     case "fullmock": renderFullMockIntro(); break;
     case "fmstart": S.fm={i:0,scores:{}}; fmStep(); break;
     case "fmnext": if(S.fm){ S.fm.i++; S.tx=null; fmStep(); } break;
-    case "fmspeak": if(S.fm){ S.fm.scores.speaking=S.ex?spScore(S.ex):null; if(S.fm.scores.speaking!=null){ lbSend("speaking","Og'zaki mock (to'liq mock)",S.fm.scores.speaking); tresAdd({id:Date.now(),ts:Date.now(),skill:"speaking",title:"Og'zaki mock",score:S.fm.scores.speaking}); } S.fm.i=4; renderFmFinal(); } break;
+    case "fmspeak": if(S.ex&&S.ex.sttState==="loading"){ toast("Ovoz matnga aylantirilmoqda — biroz kuting"); break; } if(S.fm){ S.fm.scores.speaking=S.ex?spScore(S.ex):null; if(S.fm.scores.speaking!=null){ lbSend("speaking","Og'zaki mock (to'liq mock)",S.fm.scores.speaking); tresAdd({id:Date.now(),ts:Date.now(),skill:"speaking",title:"Og'zaki mock",score:S.fm.scores.speaking}); } S.fm.i=4; renderFmFinal(); } break;
     case "texport": adminExport(); break;
     case "tcopy": { const ta=document.getElementById("texptx"); if(ta){ try{ navigator.clipboard.writeText(ta.value).then(()=>toast("Nusxalandi"),()=>{ ta.select(); toast("Matnni qo'lda nusxalang"); }); }catch(x){ ta.select(); } } break; }
     case "treset": askConfirm("Mahalliy o'zgarishlar o'chirilsinmi?").then(ok=>{ if(!ok) return; store.set("qalam:tests_local",null); TESTS=DEFAULT_TESTS; TESTS_SRC="builtin"; loadTests().then(()=>renderAdmin("tests")); }); break;
@@ -3158,6 +3204,44 @@ Return ONLY valid JSON in exactly this shape:
 {"insufficient":false,"level":"A1|A2|B1|B2|C1|C2","plus":false,"level_note":"1-2 sentences in Uzbek","criteria":{"vazifa":{"score":0,"note":""},"grammatika":{"score":0,"note":""},"lugat":{"score":0,"note":""},"bogllanish":{"score":0,"note":""},"imlo":{"score":0,"note":""},"fusha":{"score":0,"note":""}},"strengths":["..."],"weak":["..."],"mistakes":[{"answer":1,"said":"exact Arabic quote","fix":"corrected Arabic","why":"short rule in Uzbek"}],"per_answer":[{"answer":1,"comment":"1-2 sentences in Uzbek"}],"advice":["..."]}
 Scores are 0-10 integers. At most 12 mistakes and 4 advice items.`;
 
+/* ============ ZAXIRA: natijalar va lug'at serverda (telefon almashsa ham tiklanadi) ============ */
+const BK_KEYS=["qalam:tres","qalam:vocab","qalam:seen","qalam:sptop","gapir:done","qalam:remind"];
+const BK={ready:false,t:0,busy:false,dirty:false,tries:0};
+function bkInit(){ try{ return TG.on&&TG.wa&&TG.wa.initData||""; }catch(e){ return ""; } }
+function bkSoon(){ if(!BK.ready){ BK.dirty=true; return; } clearTimeout(BK.t); BK.t=setTimeout(bkPush,4000); }
+async function bkPush(){
+  const init=bkInit(); if(!init||!LB.url||!BK.ready) return;
+  if(BK.busy){ bkSoon(); return; } BK.busy=true;
+  try{
+    const data={}; BK_KEYS.forEach(k=>{ data[k]=store.get(k,null); });
+    let s=JSON.stringify(data);
+    if(s.length>380000&&data["qalam:vocab"]){ Object.values(data["qalam:vocab"]).forEach(x=>{ x.ctx=String(x.ctx||"").slice(0,80); }); s=JSON.stringify(data); }
+    const j=await tPost({action:"bkset",init,data:s},30000); if(!j||!j.ok) throw 0;
+  }catch(e){ clearTimeout(BK.t); BK.t=setTimeout(bkPush,60000); }
+  finally{ BK.busy=false; }
+}
+function bkMerge(d){
+  if(!d||typeof d!=="object") return false; let changed=false;
+  const put=(k,v)=>{ const old=JSON.stringify(store.get(k,null)); if(JSON.stringify(v)!==old){ mem[k]=v; try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} changed=true; } };
+  const tr=d["qalam:tres"]; if(Array.isArray(tr)){ const loc=store.get("qalam:tres",[]), ids=new Set(loc.map(x=>x&&x.id)); const all=loc.concat(tr.filter(x=>x&&!ids.has(x.id))); all.sort((a,b)=>(b.ts||0)-(a.ts||0)); put("qalam:tres",all.slice(0,60)); }
+  const vb=d["qalam:vocab"]; if(vb&&typeof vb==="object"){ const loc=Object.assign({},store.get("qalam:vocab",{})); Object.keys(vb).forEach(k=>{ const a=loc[k], b=vb[k]; if(!b) return; if(!a||(b.seen||0)>(a.seen||0)||((b.seen||0)===(a.seen||0)&&(b.due||0)>(a.due||0))) loc[k]=Object.assign({},b,{tr:(b.tr||(a&&a.tr)||"")}); else if(!a.tr&&b.tr) loc[k]=Object.assign({},a,{tr:b.tr}); }); put("qalam:vocab",loc); }
+  ["qalam:seen","qalam:sptop"].forEach(k=>{ const s=d[k]; if(s&&typeof s==="object"){ const loc=Object.assign({},store.get(k,{})); Object.keys(s).forEach(i=>{ if(!loc[i]||s[i]>loc[i]) loc[i]=s[i]; }); put(k,loc); } });
+  const dn=d["gapir:done"]; if(dn&&typeof dn==="object"){ const loc=JSON.parse(JSON.stringify(store.get("gapir:done",{}))); Object.keys(dn).forEach(i=>{ loc[i]=Object.assign({},dn[i]||{},loc[i]||{}); }); put("gapir:done",loc); done=loc; }
+  if(d["qalam:remind"]!=null&&store.get("qalam:remind",null)==null) put("qalam:remind",d["qalam:remind"]);
+  return changed;
+}
+async function bkPull(){
+  const init=bkInit(); if(!init||!LB.url||BK.ready) return;
+  try{
+    const j=await tPost({action:"bkget",init},20000);
+    if(!j||!j.ok) throw 0;
+    let changed=false; if(j.data){ try{ changed=bkMerge(JSON.parse(j.data)); }catch(e){} }
+    BK.ready=true;
+    if(changed){ if(S.view==="myres") renderMyRes(); else if(S.view==="vocab") renderVocab(); else if(S.view===""&&!S.topic&&!S.mockMode&&!S.ex&&!S.tx) renderHome(); toast("Natijalaringiz tiklandi"); }
+    if(changed||BK.dirty||!j.data) bkPush();
+  }catch(e){ if(++BK.tries<4) setTimeout(bkPull,30000*BK.tries); }
+}
+
 /* ============ TELEGRAM MINI APP ============ */
 const TG={wa:null,on:false};
 function tgVer(v){ try{ return !!(TG.wa&&TG.wa.isVersionAtLeast&&TG.wa.isVersionAtLeast(v)); }catch(e){ return false; } }
@@ -3204,6 +3288,7 @@ function tgReady(){
   try{ new MutationObserver(()=>tgSync()).observe(document.getElementById("app"),{childList:true,subtree:true}); }catch(e){}
   tgSync();
   if(S.view==="admin") renderAdmin(S.adminTab); else if(!S.topic&&!S.mockMode) renderHome();
+  setTimeout(bkPull,1200);
 }
 window.tgReady=tgReady;
 
