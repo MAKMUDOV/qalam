@@ -1386,14 +1386,30 @@ async function toWav16(blob){
   const sr=16000, dur=Math.min(buf.duration,240), len=Math.max(1,Math.ceil(dur*sr));
   const off=new OAC(1,len,sr), src=off.createBufferSource(); src.buffer=buf; src.connect(off.destination); src.start(0);
   const out=await new Promise((res,rej)=>{ off.oncomplete=ev=>res(ev.renderedBuffer); const pr=off.startRendering(); if(pr&&pr.then) pr.then(res,rej); });
-  const d=out.getChannelData(0), n=d.length, ab2=new ArrayBuffer(44+n*2), v=new DataView(ab2);
+  const full=out.getChannelData(0); let pk=0; for(let i=0;i<full.length;i++) pk=Math.max(pk,Math.abs(full[i]));
+  if(pk<0.004) return {silent:true,dur:0};
+  const thr=Math.max(0.008,pk*0.06), win=sr/50; let a=0,b=full.length;
+  const loud=i=>{ let m=0; for(let k=i;k<Math.min(full.length,i+win);k++) m=Math.max(m,Math.abs(full[k])); return m>thr; };
+  while(a<b&&!loud(a)) a+=win; while(b>a&&!loud(Math.max(0,b-win))) b-=win;
+  a=Math.max(0,a-sr*0.3); b=Math.min(full.length,b+sr*0.3);
+  const d=full.subarray(Math.floor(a),Math.ceil(b)), n=d.length, ab2=new ArrayBuffer(44+n*2), v=new DataView(ab2);
   const ws=(o,s)=>{ for(let i=0;i<s.length;i++) v.setUint8(o+i,s.charCodeAt(i)); };
   ws(0,"RIFF"); v.setUint32(4,36+n*2,true); ws(8,"WAVE"); ws(12,"fmt "); v.setUint32(16,16,true); v.setUint16(20,1,true); v.setUint16(22,1,true);
   v.setUint32(24,sr,true); v.setUint32(28,sr*2,true); v.setUint16(32,2,true); v.setUint16(34,16,true); ws(36,"data"); v.setUint32(40,n*2,true);
   let peak=0; for(let i=0;i<n;i++) peak=Math.max(peak,Math.abs(d[i]));
   const g=peak>0.02&&peak<0.5?0.9/peak:1;
   for(let i=0;i<n;i++){ const s=Math.max(-1,Math.min(1,d[i]*g)); v.setInt16(44+i*2,s<0?s*0x8000:s*0x7fff,true); }
-  return new Blob([ab2],{type:"audio/wav"});
+  return {blob:new Blob([ab2],{type:"audio/wav"}),dur:n/sr};
+}
+/* AI ba'zan bir iborani qayta-qayta yozib yuboradi — takrorni olib tashlash va ovoz uzunligiga mos cheklash */
+function sttClean(text,secs){
+  let w=String(text||"").replace(/\s+/g," ").trim().split(" ").filter(Boolean); let cut=false;
+  for(let L=1;L<=10;L++){ const out=[]; let i=0;
+    while(i<w.length){ out.push(w[i]); i++;
+      if(out.length>=L*3){ const t=out.slice(-L).join(" "); let rep=1; while(rep<3&&out.slice(-L*(rep+1),-L*rep).join(" ")===t) rep++; if(rep>=3){ out.splice(out.length-L*(rep-1),L*(rep-1)); while(i+L<=w.length&&w.slice(i,i+L).join(" ")===t){ i+=L; cut=true; } } } }
+    w=out; }
+  const max=secs>0?Math.ceil(secs*3.3)+6:9999; if(w.length>max){ w=w.slice(0,max); cut=true; }
+  return {text:w.join(" "),cut};
 }
 const sttNeed=e=>e&&e.kind!=="writing"&&(e.res||[]).some(r=>r.blob&&!String(r.text||"").trim()&&!r.sttTried);
 async function sttFill(e,rr){
@@ -1404,10 +1420,12 @@ async function sttFill(e,rr){
   for(const r of todo){
     r.sttTried=true;
     try{
-      let b=null; try{ b=await toWav16(r.blob); }catch(x){ b=null; }
-      const blob=b||r.blob, mime=b?"audio/wav":((r.blob.type||"").split(";")[0]||"audio/webm");
-      const j=await tPost({action:"stt",uid:m.uid||"anon",mime,b64:await blobB64(blob)},120000);
-      if(j&&j.ok){ if(!String(r.text||"").trim()) r.text=String(j.text||""); }
+      let w=null; try{ w=await toWav16(r.blob); }catch(x){ w=null; }
+      if(w&&w.silent){ r.warn="Yozuvda ovoz eshitilmadi — matn olinmadi."; e.sttN++; continue; }
+      const blob=(w&&w.blob)||r.blob, mime=(w&&w.blob)?"audio/wav":((r.blob.type||"").split(";")[0]||"audio/webm");
+      const dur=(w&&w.dur)||r.secs||0;
+      const j=await tPost({action:"stt",uid:m.uid||"anon",mime,secs:Math.round(dur),b64:await blobB64(blob)},120000);
+      if(j&&j.ok){ if(!String(r.text||"").trim()){ const c=sttClean(j.text,Math.max(dur,r.secs||0)); r.text=c.text; if(c.cut) r.warn="Avtomatik matnda ortiqcha takror bor edi — olib tashlandi. Yozuvni tinglab, matnni tekshiring."; } }
       else{ const er=j&&j.err; e.sttErr=er==="daylimit"?"Bugungi ovozdan matn olish limiti tugadi. Matnni o'zingiz yozing yoki ertaga urinib ko'ring.":er==="busy"?"Server band — birozdan keyin «Ovozdan matnni olish» ni qayta bosing.":"Ovozdan matn olinmadi. Qayta urinib ko'ring yoki matnni o'zingiz yozing."; if(er==="daylimit") break; r.sttTried=false; }
     }catch(x){ e.sttErr="Internet bilan muammo — «Ovozdan matnni olish» ni qayta bosing."; r.sttTried=false; }
     e.sttN++; if(e.sttState==="loading"&&rr) rr();
