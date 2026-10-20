@@ -1153,7 +1153,7 @@ Rules:
 - Write every explanation in Uzbek (Latin script). Use Arabic script only for quotes and corrections.
 Return ONLY valid JSON (no markdown, no comments) in exactly this shape:
 {"insufficient":false,"level":"A1|A2|B1|B2|C1|C2","plus":false,"level_note":"1-2 sentences in Uzbek","criteria":{"ravonlik":{"score":0,"note":""},"grammatika":{"score":0,"note":""},"lugat":{"score":0,"note":""},"bogllanish":{"score":0,"note":""},"mazmun":{"score":0,"note":""},"fusha":{"score":0,"note":""}},"strengths":["..."],"weak":["..."],"mistakes":[{"answer":1,"said":"exact Arabic quote","fix":"corrected Arabic","why":"short rule in Uzbek"}],"per_answer":[{"answer":1,"comment":"1-2 sentences in Uzbek"}],"advice":["..."]}
-Scores are 0-10 integers. Give at most 12 mistakes, the most instructive ones first, and at most 4 advice items.`;
+Scores are 0-10 integers. Be consistent and reproducible: the same answer must always receive the same scores. The level MUST agree with the average of the criteria scores: average 9-10 → C1 (C2 only for near-native work), 7-8 → B2, 5-6 → B1, 3-4 → A2, 0-2 → A1. Be strict: do not give B2 or C1 unless the text clearly shows that level. Give at most 12 mistakes, the most instructive ones first, and at most 4 advice items.`;
 const CRIT=[["ravonlik","Ravonlik","الطلاقة"],["grammatika","Grammatika","السلامة اللغوية"],["lugat","Lug'at va tuzilma","المفردات والتراكيب"],["bogllanish","Fikr bog'lanishi","تناسق الأفكار"],["mazmun","Mazmun rivoji","تطوير المضمون"],["fusha","Fusha (uslub)","الفصحى"]];
 const LVLS=["A1","A2","B1","B2","C1","C2"];
 const arWords=t=>String(t||"").split(/\s+/).filter(w=>/[\u0600-\u06FF]/.test(w));
@@ -1437,13 +1437,13 @@ async function aiEvaluate(e,rr){
   if(!e||e.evState==="loading") return;
   if(e.sttState==="loading"){ toast("Ovoz matnga aylantirilmoqda — biroz kuting"); return; }
   if(sttNeed(e)) await sttFill(e,rr);
-  if(e.res.reduce((a,r)=>a+arWords(r.text).length,0)<8){ e.evErr="Tekshirish uchun matn juda qisqa. Javob matnini to'ldiring."; rr(); return; }
+  if(e.res.reduce((a,r)=>a+arWords(r.text).length,0)<8){ e.evErr="Tekshirish uchun matn juda qisqa. Javob matnini to'ldiring."; rr(); if(e.onFail) e.onFail(); return; }
   e.evState="loading"; e.evErr=""; rr();
   try{
     const ev=await aiRun(e);
-    e.ev=ev; e.evState=""; e.evErr=""; rr(); if(e===S.ex) histSave(e); spSendOnce(e);
+    e.ev=ev; e.evState=""; e.evErr=""; rr(); if(e===S.ex) histSave(e); spSendOnce(e); if(e.onEval) e.onEval(ev);
     setTimeout(()=>{ const h=document.querySelector(".evhero"); if(h) h.scrollIntoView({behavior:"smooth",block:"start"}); },50);
-  }catch(x){ e.evState=""; e.evErr=(x&&x.message)||"Xato yuz berdi."; rr(); }
+  }catch(x){ e.evState=""; e.evErr=(x&&x.message)||"Xato yuz berdi."; rr(); if(e.onFail) e.onFail(); }
 }
 const aidlg=document.getElementById("aidlg");
 function openAI(){ document.getElementById("aikey").value=AI.key||""; document.getElementById("aimodel").value=AI.model||"claude-sonnet-5-5"; try{ aidlg.showModal(); }catch(x){ aidlg.setAttribute("open",""); } }
@@ -2009,8 +2009,12 @@ function exSaved(e,r){
 function exFinish(){
   const e=S.ex; if(!e) return; stopTimer();
   if(S.exStream){ S.exStream.getTracks().forEach(t=>t.stop()); S.exStream=null; }
-  e.phase="done"; e.qc=e.res.some(r=>arWords(r.text).length); renderExam(); window.scrollTo(0,0); wakeOff(); histSave(e); try{ detSpeak(e); }catch(x){}
-  if(sttNeed(e)) sttFill(e,()=>{ if(S.ex===e) renderExam(); });
+  e.phase="done"; e.qc=e.res.some(r=>arWords(r.text).length); renderExam(); window.scrollTo(0,0); wakeOff(); histSave(e);
+  const rrE=()=>{ if(S.ex===e) renderExam(); };
+  const det=()=>{ try{ detSpeak(e); }catch(x){} };
+  e.onEval=()=>det();
+  e.onFail=()=>{ if(!e.lbSent&&e.res.some(r=>arWords(r.text).length)){ e.qc=true; spSendOnce(e); rrE(); } det(); };
+  Promise.resolve(sttNeed(e)?sttFill(e,rrE):null).then(()=>{ if(!e.ev&&e.res.reduce((a,r)=>a+arWords(r.text).length,0)>=8) aiEvaluate(e,rrE); else e.onFail(); });
 }
 function exAbort(){
   histFlush();
@@ -2133,8 +2137,8 @@ document.addEventListener("click",e=>{
     case "tquit": askConfirm("Test to'xtatilsinmi? Javoblar saqlanmaydi.").then(ok=>{ if(!ok) return; txStop(); ttsStop(); const k=S.tx&&S.tx.skill; S.tx=null; if(S.fm){ S.fm=null; renderHome(); } else skillBack(k); }); break;
     case "fullmock": renderFullMockIntro(); break;
     case "fmstart": S.fm={i:0,scores:{}}; fmStep(); break;
-    case "fmnext": if(S.fm){ S.fm.i++; S.tx=null; fmStep(); } break;
-    case "fmspeak": if(S.ex&&S.ex.sttState==="loading"){ toast("Ovoz matnga aylantirilmoqda — biroz kuting"); break; } if(S.fm){ S.fm.scores.speaking=S.ex?spScore(S.ex):null; if(S.fm.scores.speaking!=null){ lbSend("speaking","Og'zaki mock (to'liq mock)",S.fm.scores.speaking); tresAdd({id:Date.now(),ts:Date.now(),skill:"speaking",title:"Og'zaki mock",score:S.fm.scores.speaking}); } S.fm.i=4; renderFmFinal(); } break;
+    case "fmnext": if(S.wr&&S.wr.evState==="loading"&&S.tx&&S.tx.skill==="writing"){ toast("AI yozma ishingizni baholamoqda — biroz kuting"); break; } if(S.fm){ S.fm.i++; S.tx=null; fmStep(); } break;
+    case "fmspeak": if(S.ex&&(S.ex.sttState==="loading"||S.ex.evState==="loading")){ toast("AI javoblarni baholamoqda — biroz kuting"); break; } if(S.fm){ S.fm.scores.speaking=S.ex?spScore(S.ex):null; if(S.fm.scores.speaking!=null){ lbSend("speaking","Og'zaki mock (to'liq mock)",S.fm.scores.speaking); tresAdd({id:Date.now(),ts:Date.now(),skill:"speaking",title:"Og'zaki mock",score:S.fm.scores.speaking}); } S.fm.i=4; renderFmFinal(); } break;
     case "texport": adminExport(); break;
     case "tcopy": { const ta=document.getElementById("texptx"); if(ta){ try{ navigator.clipboard.writeText(ta.value).then(()=>toast("Nusxalandi"),()=>{ ta.select(); toast("Matnni qo'lda nusxalang"); }); }catch(x){ ta.select(); } } break; }
     case "treset": askConfirm("Mahalliy o'zgarishlar o'chirilsinmi?").then(ok=>{ if(!ok) return; store.set("qalam:tests_local",null); TESTS=DEFAULT_TESTS; TESTS_SRC="builtin"; loadTests().then(()=>renderAdmin("tests")); }); break;
@@ -3073,8 +3077,8 @@ function submitTest(auto){
     const rec={id:Date.now(),ts:Date.now(),skill:x.skill,testId:x.test.id,title:x.test.title,score:r.score,raw:r.raw,total:r.total,secs,ans:x.ans,fm:!!S.fm,practice:!!x.test.practice};
     tresAdd(rec); x.result=r; x.rec=rec;
     if(S.fm) S.fm.scores[x.skill]=r.score;
-    if(!x.test.practice) lbSend(x.skill,x.test.title,r.score);
-    try{ detTest(x,r,rec); }catch(e){}
+    if(!x.test.practice&&x.skill!=="writing") lbSend(x.skill,x.test.title,r.score);
+    if(x.skill!=="writing"){ try{ detTest(x,r,rec); }catch(e){} }
     try{ const nv=x.test.skill==='writing'?vbFromWriting(r.per||[],x.test):vbFromTest(x.test,x.ans); if(nv>0) setTimeout(()=>toast(nv+" ta so'z Lug'atimga qo'shildi"),900); }catch(e){}
     tgHaptic("ok"); renderTestResult();
   };
@@ -3087,7 +3091,14 @@ function renderTestResult(){
   const x=S.tx, t=x.test, r=x.result, s=SKILLS[t.skill];
   let detail="";
   if(t.skill==="writing"){
-    S.wr={kind:"writing",lvl:"WRITING",sys:AI_WSYS,crit:WCRIT,res:(t.tasks||[]).map((w,i)=>({q:[w.prompt],text:x.ans["w"+i]||"",secs:x.rec.secs,limit:(t.time||60)*60,part:w.id}))};
+    if(!x.wr){ x.wr={kind:"writing",lvl:"WRITING",sys:AI_WSYS,crit:WCRIT,res:(t.tasks||[]).map((w,i)=>({q:[w.prompt],text:x.ans["w"+i]||"",secs:x.rec.secs,limit:(t.time||60)*60,part:w.id}))};
+      const wr=x.wr, sendLb=sc=>{ if(wr.lbDone) return; wr.lbDone=true; try{ detTest(x,r,x.rec); }catch(e){} if(!t.practice) lbSend("writing",t.title,sc); };
+      wr.onEval=ev=>{ const sc=aiScore75(ev); if(sc==null){ wr.onFail(); return; } r.score=sc; r.ai=true; x.rec.score=sc;
+        const a=tresAll(), it=a.find(z=>z.id===x.rec.id); if(it){ it.score=sc; it.ai=true; store.set("qalam:tres",a); }
+        if(S.fm&&S.fm.scores) S.fm.scores.writing=sc; sendLb(sc); if(S.tx===x&&S.view==="tresult") renderTestResult(); };
+      wr.onFail=()=>{ sendLb(r.score); if(S.tx===x&&S.view==="tresult") renderTestResult(); };
+      setTimeout(()=>{ if(S.tx===x) aiEvaluate(wr,renderWr); },300); }
+    S.wr=x.wr;
     detail=`<div class="card"><h3>Vazifalar bo'yicha</h3>${(t.tasks||[]).map((w,i)=>{ const p=r.per[i];
       return `<div class="mist"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><b>${esc(w.title||w.id)}</b><small class="note">${p.words} so'z · <b>${p.pts.toFixed(2)} / ${p.max.toFixed(2)} ball</b></small></div>
         <div class="crit" style="padding:4px 0"><div class="bar"><u style="width:${Math.round(p.q*100)}%"></u></div></div>
@@ -3095,13 +3106,13 @@ function renderTestResult(){
         ${p.p.issues.map(d=>`<div class="ar" lang="ar"><span class="bad">${esc(d.said)}</span> <span class="ok">→ ${esc(d.fix)}</span></div><div class="note">${esc(d.why)}</div>`).join("")}
         ${p.tips.map(tp=>`<div class="note">• ${esc(tp)}</div>`).join("")}${sampleHTML(w)}</div>`; }).join("")}
       <p class="note" style="margin:8px 2px 0">Avtomatik ball taxminiy: hajm, bog'lovchilar, so'z boyligi va fushaga qaraydi. Aniqroq baho va xatolar uchun AI tekshiruvidan foydalaning.</p></div>
-      <div id="wrai">${aiCardHTML(S.wr,"wr")}</div>`;
+      <div id="wrai">${aiCardHTML(S.wr,"wr")}${S.wr.ev?evalHTML(S.wr.ev,S.wr):""}</div>`;
   } else {
     detail=mistakesHTML(t,x.ans,!!S.mxAll);
   }
   const next=S.fm?`<button class="go" data-act="fmnext">${S.fm.i<3?"Keyingi bo'lim: "+SKILLS[SK_ORDER[S.fm.i+1]].uz+" ›":"Yakuniy natija ›"}</button>`:`<button class="go" data-act="tpick" data-skill="${t.skill}">${s.uz}: keyingi test ›</button><button class="go alt" data-act="home">‹ Bosh sahifa</button>`;
   $app.innerHTML=header()+`${S.fm?"":`<div class="back"><button class="ghost" data-act="home">‹ Bosh sahifa</button></div>`}<div class="thead"><span class="lvl" style="color:var(--accent);font-size:1.2rem">${s.uz} · natija</span><small>${esc(t.title)} · ${fmt(x.rec.secs)} vaqt sarflandi</small></div>
-    ${t.practice?pracHero(r):scoreHero(r.score,s.uz.toUpperCase()+" · BALL",t.skill==="writing"?"Ball: "+r.exact.toFixed(2)+" / 75 (Task 1 — 33%, Task 2 — 67%)":r.raw+" / "+r.total+" to'g'ri javob"+(r.total!==35?" (35 talik shkalada "+r.eq+" ta)":"")+" · multilevel jadvali bo'yicha")}
+    ${t.practice?pracHero(r):(t.skill==="writing"&&!r.ai&&S.wr&&!S.wr.evErr)?`<div class="hero"><div class="kick">${esc(s.uz.toUpperCase())} · BALL</div><div class="lvrow"><div class="big">…<span style="font-size:1.3rem;opacity:.85"> / 75</span></div></div><p style="margin:6px 0 0;font-weight:700">AI yozma ishingizni tekshirmoqda — aniq ball va daraja 20–40 soniyada chiqadi. Sahifani yopmang.</p></div>`:scoreHero(r.score,s.uz.toUpperCase()+" · BALL",t.skill==="writing"?(r.ai?"AI baholashi asosida (grammatika, lug'at, vazifani bajarish, izchillik, imlo, fusha)":S.wr&&!S.wr.evErr?"Taxminiy ball — AI matningizni tekshirmoqda, aniq ball birozdan keyin chiqadi…":"Taxminiy ball (hajm va bog'lovchilar bo'yicha). Aniq ball uchun AI tekshiruvi kerak."):r.raw+" / "+r.total+" to'g'ri javob"+(r.total!==35?" (35 talik shkalada "+r.eq+" ta)":"")+" · multilevel jadvali bo'yicha")}
     <button class="go alt shbtn" data-act="share">🎉 Natija kartasi — ulashish</button>
     ${S.fm?next:""}${detail}${t.skill==="listening"&&!S.fm?revAudHTML(t):""}${S.fm?"":next}`;
   S.shareData={skill:t.skill,kick:s.uz,title:t.title,score:r.score,raw:r.raw,total:r.total,practice:!!t.practice,ts:Date.now()};
@@ -3135,8 +3146,18 @@ function fmStep(){
     f.scores[k]=null; f.i++; }
   renderFmFinal();
 }
+/* AI bahosidan 75 ballik ball: mezonlar o'rtachasi, daraja oralig'iga mos ravishda */
+function aiScore75(ev){
+  if(!ev||ev.insufficient) return null;
+  const cs=Object.values(ev.criteria||{}).map(c=>Math.max(0,Math.min(10,+((c||{}).score)||0))); if(!cs.length) return null;
+  const avg=cs.reduce((a,b)=>a+b,0)/cs.length, c=cfg();
+  let sc=Math.round(avg/10*75);
+  const band={A1:[0,19],A2:[20,c.pass-1],B1:[c.pass,c.b2-1],B2:[c.b2,c.c1-1],C1:[c.c1,75],C2:[c.c1,75]}[ev.level];
+  if(band) sc=Math.max(band[0],Math.min(band[1],sc));
+  return Math.max(0,Math.min(75,sc));
+}
 function spScore(e){
-  if(e.ev&&!e.ev.insufficient){ const cs=CRIT.map(c=>+((e.ev.criteria||{})[c[0]]||{}).score||0); return Math.round(cs.reduce((a,b)=>a+b,0)/cs.length/10*75); }
+  if(e.ev&&!e.ev.insufficient) return aiScore75(e.ev);
   const q=quickCheck(e); if(q.insufficient) return null;
   const answered=q.per.filter(p=>p.words>=3).length/Math.max(1,e.res.length);
   let sc=Math.round((20+5*q.pts)*(0.3+0.7*answered));
@@ -3220,7 +3241,7 @@ Rules: judge only what is written; never invent words; quote mistakes exactly. D
 Write every explanation in Uzbek (Latin script); Arabic only for quotes and corrections.
 Return ONLY valid JSON in exactly this shape:
 {"insufficient":false,"level":"A1|A2|B1|B2|C1|C2","plus":false,"level_note":"1-2 sentences in Uzbek","criteria":{"vazifa":{"score":0,"note":""},"grammatika":{"score":0,"note":""},"lugat":{"score":0,"note":""},"bogllanish":{"score":0,"note":""},"imlo":{"score":0,"note":""},"fusha":{"score":0,"note":""}},"strengths":["..."],"weak":["..."],"mistakes":[{"answer":1,"said":"exact Arabic quote","fix":"corrected Arabic","why":"short rule in Uzbek"}],"per_answer":[{"answer":1,"comment":"1-2 sentences in Uzbek"}],"advice":["..."]}
-Scores are 0-10 integers. At most 12 mistakes and 4 advice items.`;
+Scores are 0-10 integers. Be consistent and reproducible: the same answer must always receive the same scores. The level MUST agree with the average of the criteria scores: average 9-10 → C1 (C2 only for near-native work), 7-8 → B2, 5-6 → B1, 3-4 → A2, 0-2 → A1. Be strict: do not give B2 or C1 unless the text clearly shows that level. At most 12 mistakes and 4 advice items.`;
 
 /* ============ ZAXIRA: natijalar va lug'at serverda (telefon almashsa ham tiklanadi) ============ */
 const BK_KEYS=["qalam:tres","qalam:vocab","qalam:seen","qalam:sptop","gapir:done","qalam:remind"];
