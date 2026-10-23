@@ -2144,7 +2144,8 @@ document.addEventListener("click",e=>{
     case "gset": setPick(+t.dataset.pi,+t.dataset.qi,+t.dataset.v); break;
     case "gclose": closePick(); break;
     case "tpart": if(S.tx){ S.tx.part=+t.dataset.pi; renderTest(); } break;
-    case "tap": if(S.txAud){ const a=S.txAud; if(a.error){ a._rt=0; a.src=audSrc(S.tx.test.audio)+"?r="+Date.now(); a.load(); } if(a.paused){ const pr=a.play(); if(pr&&pr.catch) pr.catch(()=>toast("Audioni ochib bo'lmadi — internetni tekshiring")); } else if(S.admin||1) a.pause(); } break;
+    case "tap": if(S.txAud&&S.txAud._loading){ toast("Audio yuklanmoqda — bir necha soniya kuting"); break; }
+    if(S.txAud){ const a=S.txAud; if(a.error){ a._rt=0; a.src=audSrc(S.tx.test.audio)+"?r="+Date.now(); a.load(); } if(a.paused){ const pr=a.play(); if(pr&&pr.catch) pr.catch(()=>toast("Audioni ochib bo'lmadi — internetni tekshiring")); } else if(S.admin||1) a.pause(); } break;
     case "tapsk": if(S.txAud&&S.admin){ S.txAud.currentTime=Math.max(0,S.txAud.currentTime+(+t.dataset.d)); } break;
     case "tplay": if(S.tx){ const pi=+t.dataset.pi, p=S.tx.test.parts[pi]; S.tx.plays[pi]=(S.tx.plays[pi]||0)+1; t.textContent="🔊 Eshitilmoqda… ("+S.tx.plays[pi]+"/2)"; t.disabled=true; speakAr([p.script],()=>{ const b=document.querySelector('[data-act="tplay"]'); if(b&&S.tx){ b.textContent="🔊 Audioni tinglash ("+S.tx.plays[pi]+"/2)"; b.disabled=S.tx.plays[pi]>=2&&!S.admin; } }); } break;
     case "tsubmit": submitTest(false); break;
@@ -2967,10 +2968,10 @@ function tapSeg(){ const t=S.tx&&S.tx.test, a=S.txAud; const st=t&&t.aStart!=nul
 function tapHTML(){ const a=S.txAud; if(!a) return "";
   const sg=tapSeg(), d=sg.d, c=Math.min(sg.c,d||sg.c), pc=d?Math.min(100,c/d*100):0;
   return `<div class="aplayer" id="tap"><button class="apbtn" data-act="tap" aria-label="${a.paused?"Ijro":"Pauza"}">${a.paused?"▶":"❚❚"}</button>
-    <div class="apmid"><div class="apbar"><u id="tapbar" style="width:${pc}%"></u></div><small class="note"><span id="tapt">${fmt(Math.floor(c))}</span> / ${d?fmt(Math.floor(d)):"…"} · ${a.paused?(c>0?"pauza":"Audioni boshlash uchun ▶ ni bosing"):"eshitilmoqda"}</small></div>
+    <div class="apmid"><div class="apbar"><u id="tapbar" style="width:${pc}%"></u></div><small class="note">${a._loading?"Audio yuklanmoqda…":""}<span id="tapt">${fmt(Math.floor(c))}</span> / ${d?fmt(Math.floor(d)):"…"} · ${a.paused?(c>0?"pauza":"Audioni boshlash uchun ▶ ni bosing"):"eshitilmoqda"}</small></div>
     ${S.admin?`<button class="ghost apsk" data-act="tapsk" data-d="-30">−30s</button><button class="ghost apsk" data-act="tapsk" data-d="30">+30s</button>`:""}</div>${S.admin&&S.tx&&S.tx.test.audioParts&&S.tx.test.aStart==null?`<div class="apj">${S.tx.test.audioParts.map((t,i)=>`<button class="ghost" data-act="tapj" data-t="${t}">${i+1}-qism</button>`).join("")}</div>`:""}`; }
 function revAudHTML(t){ if(!t||!t.audio) return "";
-  return `<div class="card"><h3>🎧 Audioni qismlar bo'yicha qayta tinglash</h3><audio id="revaud" controls preload="none" src="${esc(audSrc(t.audio))}" style="width:100%"></audio>
+  return `<div class="card"><h3>🎧 Audioni qismlar bo'yicha qayta tinglash</h3><audio id="revaud" controls preload="none" src="${esc(t.audio)}" style="width:100%"></audio>
     ${t.audioParts?`<div class="apj">${t.audioParts.map((x,i)=>`<button class="ghost" data-act="revj" data-t="${x}">${i+1}-qism <small>${fmt(x)}</small></button>`).join("")}</div>`:""}
     <p class="note" style="margin:6px 0 0">Xato qilgan qismingizni qayta tinglab, javobni matn bilan solishtiring.</p></div>`; }
 function tapUpd(full){ const a=S.txAud; if(!a) return; const box=document.getElementById("tap"); if(!box) return;
@@ -2980,10 +2981,11 @@ function tapUpd(full){ const a=S.txAud; if(!a) return; const box=document.getEle
 function startTest(id){
   const t=typeof id==="object"?id:testById(id); if(!t) return;
   stopTimer(); stopRec(); txStop(); ttsUnlock(); REC.unlock();
-  if(S.txAud){ try{ S.txAud.pause(); }catch(e){} S.txAud=null; }
-  if(t.audio){ const a=new Audio(audSrc(t.audio)); a.preload="metadata"; a.addEventListener("error",()=>{ a._rt=(a._rt||0)+1; if(a._rt<=2){ const ct=a.currentTime; setTimeout(()=>{ a.src=(a._rt===1?t.audio:audSrc(t.audio))+"?r="+Date.now(); a.load(); try{ a.currentTime=ct; }catch(e){} },1200); } else toast("Audio yuklanmadi — internetni tekshirib, ▶ ni qayta bosing"); }); let lt=0; a.addEventListener("timeupdate",()=>{ if(t.aEnd!=null&&a.currentTime>=t.aEnd){ a.pause(); try{ a.currentTime=t.aEnd; }catch(e){} a._segEnd=true; } const n=Date.now(); if(n-lt>500){ lt=n; tapUpd(); } });
+  if(S.txAud){ try{ S.txAud.pause(); }catch(e){} if(S.txAud._blob) try{ URL.revokeObjectURL(S.txAud._blob); }catch(e){} S.txAud=null; }
+  if(t.audio){ const seg=t.aStart!=null; const a=seg?new Audio():new Audio(audSrc(t.audio)); a.preload="metadata"; a.addEventListener("error",()=>{ a._rt=(a._rt||0)+1; if(a._rt<=2){ const ct=a.currentTime; setTimeout(()=>{ a.src=(a._rt===1?t.audio:audSrc(t.audio))+"?r="+Date.now(); a.load(); try{ a.currentTime=ct; }catch(e){} },1200); } else toast("Audio yuklanmadi — internetni tekshirib, ▶ ni qayta bosing"); }); let lt=0; a.addEventListener("timeupdate",()=>{ if(t.aEnd!=null&&a.currentTime>=t.aEnd){ a.pause(); try{ a.currentTime=t.aEnd; }catch(e){} a._segEnd=true; } const n=Date.now(); if(n-lt>500){ lt=n; tapUpd(); } });
     if(t.aStart!=null){ a.addEventListener("loadedmetadata",()=>{ try{ if(a.currentTime<t.aStart) a.currentTime=t.aStart; }catch(e){} });
-      a.addEventListener("play",()=>{ if(a.currentTime<t.aStart-0.5||(t.aEnd!=null&&a.currentTime>=t.aEnd-0.3)){ if(a._segEnd&&!S.admin){ a.pause(); toast("Bu qism audiosi tugadi"); return; } try{ a.currentTime=t.aStart; }catch(e){} } }); } ["play","pause","ended","loadedmetadata"].forEach(e=>a.addEventListener(e,()=>tapUpd(true))); S.txAud=a; }
+      a.addEventListener("play",()=>{ if(a.currentTime<t.aStart-0.5||(t.aEnd!=null&&a.currentTime>=t.aEnd-0.3)){ if(a._segEnd&&!S.admin){ a.pause(); toast("Bu qism audiosi tugadi"); return; } try{ a.currentTime=t.aStart; }catch(e){} } }); } ["play","pause","ended","loadedmetadata"].forEach(e=>a.addEventListener(e,()=>tapUpd(true))); S.txAud=a;
+    if(seg){ a._loading=true; (async()=>{ let u=null; try{ const r=await fetch(audSrc(t.audio)); if(!r.ok) throw 0; u=URL.createObjectURL(await r.blob()); }catch(e){ u=t.audio; } if(S.txAud!==a){ if(u&&u.startsWith("blob:")) URL.revokeObjectURL(u); return; } a._blob=u.startsWith("blob:")?u:null; a.src=u; a._loading=false; a.load(); tapUpd(true); })(); } }
   markSeen(t.id); S.view="test"; S.tx={test:t,skill:t.skill,ans:{},part:0,left:((S.fm&&FM_PLAN[t.skill])?Math.max(FM_PLAN[t.skill].min,t.time||0):(t.time||30))*60,t0:Date.now(),plays:{},done:false};
   renderTest();
   S.txTimer=setInterval(()=>{ const x=S.tx; if(!x||x.done){ txStop(); return; } x.left--; const c=document.getElementById("txclock"); if(c){ c.textContent=fmt(Math.max(0,x.left)); c.classList.toggle("low",x.left<=60); }
