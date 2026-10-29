@@ -2890,7 +2890,8 @@ async function renderRating(){
       <label>Ko'nikma<select id="lbsk">${[["all","Barchasi"],["listening","Tinglash"],["reading","O'qish"],["writing","Yozish"],["speaking","Gapirish"],["full","To'liq mock"]].map(o=>`<option value="${o[0]}" ${sk===o[0]?"selected":""}>${o[1]}</option>`).join("")}</select></label></div>
     <div id="lbbody">${body}</div>`;
   $app.innerHTML=shell(`<p class="note">Yuklanmoqda…</p>`); window.scrollTo(0,0);
-  await lbLoad(false); if(S.view!=="rating") return;
+  const hadQ=lbQueue().length; if(hadQ){ LBF.fail=0; try{ await lbFlush(); }catch(e){} }
+  await lbLoad(hadQ&&!lbQueue().length); if(S.view!=="rating") return;
   const b=document.getElementById("lbbody"); if(b) b.innerHTML=lbBodyHTML(per,sk);
 }
 function lbBodyHTML(per,sk){
@@ -2900,14 +2901,14 @@ function lbBodyHTML(per,sk){
   const staleNote=LB.err==="stale"?`<p class="note" style="margin:0 4px 8px">⚠ Internet sekin — oxirgi saqlangan reyting ko'rsatilmoqda.</p>`:"";
   const ranked=list.filter(u=>u.n>=LB_MIN), mine=m?list.find(u=>u.uid===m.uid):null;
   const myRank=mine?ranked.indexOf(mine)+1:0;
-  const local=tresAll().filter(r=>sk==="all"||r.skill===sk);
+  const pending=lbQueue().filter(r=>sk==="all"||r.skill===sk||(sk==="full"&&r.skill==="full")), local=pending;
   const myN=mine?mine.n:0, need=Math.max(0,LB_MIN-myN);
   const lvlTxt=v=>lvlOfScore(v)||"&lt;B1", lvlCls=v=>({C1:"c1",B2:"b2",B1:"b1"})[lvlOfScore(v)]||"no";
   const ini=n=>esc((Array.from(String(n).trim())[0]||"?").toUpperCase());
   const mycard=mine?`<div class="lbme"><div class="ring" style="--p:${Math.round(mine.best/75*100)}"><span>${myRank||ini(mine.name)}</span></div>
       <div class="mi"><small>${SK_ICO.trophy} ${myRank?myRank+"-O'RIN · "+ranked.length+" TA ISHTIROKCHI":"BALLINGIZ"}</small><b>${esc(mine.name)}</b><span class="chip">${lvlTxt(mine.best)}</span></div>
       <div class="pc">${mine.best}<small>/75</small></div></div>`
-    :`<div class="lbme"><div class="ring" style="--p:0"><span>${m?ini(m.name):"?"}</span></div><div class="mi"><small>BALLINGIZ</small><b>${m?esc(m.name):"Siz"}</b><small>${local.length?"Natijalaringiz reytingga yuborilmoqda…":"Hali test topshirmagansiz."}</small></div><div class="pc">—</div></div>`;
+    :`<div class="lbme"><div class="ring" style="--p:0"><span>${m?ini(m.name):"?"}</span></div><div class="mi"><small>BALLINGIZ</small><b>${m?esc(m.name):"Siz"}</b><small>${local.length?pending.length+" ta natijangiz serverga yuborilmoqda… Internet bo'lsa, bir necha soniyada chiqadi.":(per==="all"?"Hali test topshirmagansiz.":"Bu davrda test topshirmagansiz.")}</small></div><div class="pc">—</div></div>`;
   const banner=need>0?`<div class="lbnote"><b>Reytingda ko'rinish uchun test topshiring.</b></div>`:"";
   const rows=ranked.length?ranked.map((u,i)=>`<div class="lbr ${m&&u.uid===m.uid?"me":""}"><span class="rk ${i<3?"top t"+(i+1):""}">${i+1}</span><span class="av">${ini(u.name)}</span><span class="nm">${esc(u.name)}${m&&u.uid===m.uid?" <small>(siz)</small>":""}</span><span class="lbsc ${lvlCls(u.best)}"><b>${u.best}</b><small>${lvlTxt(u.best)}</small></span></div>`).join("")
     :`<div class="empty">Bu davrda reytingda hali hech kim yo'q. Birinchi bo'ling!</div>`;
