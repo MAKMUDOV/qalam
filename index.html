@@ -3216,12 +3216,31 @@ function aiDone(e){
    Xat 24,75 ball (1.1 = 8,25 · 1.2 = 16,5), insho 50,25 ball. So'zlar sonini kod sanaydi. */
 function wcScore(n,min,max){ if(!n) return 0; min=min||50; let sc=n>=min?10:Math.max(0,Math.floor(10*n/min));
   if(max&&n>max*1.5) sc=Math.min(sc,8); return sc; }
+/* Kod tekshiruvi: bog'lovchilar va struktura (AI tasodifiy farqini kamaytiradi) */
+const arNz=t=>String(t||"").replace(/[\u064B-\u065F\u0670\u0640]/g,"").replace(/[أإآ]/g,"ا").replace(/ى/g,"ي").replace(/ة/g,"ه");
+const LINKS=["لكن","لكنني","لكنه","لكنها","لان","لانني","لانه","لانها","لانهم","لاننا","لذلك","لذا","ثم","ايضا","كما","بالاضافه الي","علاوه علي","فضلا عن","من ناحيه اخري","من جهه اخري","في المقابل","بينما","على الرغم من","علي الرغم من","رغم ان","مع ان","غير ان","الا ان","اولا","ثانيا","ثالثا","اخيرا","في البدايه","في النهايه","في الختام","ختاما","خلاصه القول","باختصار","لهذا","لهذا السبب","بسبب","نتيجه لذلك","ومن ثم","اذن","مثلا","علي سبيل المثال","مثل","حيث","اذا","لكي","حتي","بل","اما","او","فمثلا","كذلك","بعد ذلك","وبالتالي","بالتالي","من اجل","في رايي","اعتقد ان","اري ان"];
+const LINKS_N=LINKS.map(arNz).map(x=>x.replace(/^على/,"علي"));
+function linkFound(text){ const t=" "+arNz(text).replace(/[،,.؛;:!؟?\n()«»"-]/g," ").replace(/\s+/g," ")+" ";
+  const got=new Set(); LINKS_N.forEach(l=>{ const k=l.replace(/^علي/,"علي"); if(t.includes(" "+k+" ")||t.includes(" و"+k+" ")||t.includes(" ف"+k+" ")) got.add(k==="علي الرغم من"?"على الرغم من":k.replace(/^(لان|لكن)(ني|ه|ها|هم|نا)$/,"$1")); });
+  return [...got]; }
+function linkScore(n,letter){ return letter?(n>=3?10:n===2?7:n===1?5:2):(n>=6?10:n===5?9:n===4?8:n===3?7:n===2?5:n===1?3:1); }
+function structCap(text,part){ const raw=String(text||""), t=arNz(raw), paras=raw.split(/\n\s*/).filter(p=>arWords(p).length>=4).length;
+  if(String(part).startsWith("1")){
+    const hi=/(عزيز|صديق|السيد|السيده|حضره|المحترم|مرحبا|اهلا|السلام عليكم|تحيه)/.test(t.split(/\s+/).slice(0,8).join(" "));
+    const bye=/(مع تحيات|المخلص|صديقك|صديقتك|اخوك|اختك|شكرا|مع خالص|الي اللقاء|في انتظار|تقبلوا|دمت|وتفضلوا|والسلام)/.test(t.split(/\s+/).slice(-12).join(" "));
+    return {cap:hi&&bye?10:hi||bye?7:5,note:(hi?"murojaat bor":"murojaat yo'q")+", "+(bye?"xayrlashuv bor":"xayrlashuv yo'q")}; }
+  return {cap:paras>=4?10:paras===3?8:paras===2?7:6,note:paras+" ta xatboshi"}; }
 function wrTasks(ev,e){
   if(!ev||ev.insufficient||!Array.isArray(ev.tasks)||!ev.tasks.length||!e||!e.res) return null;
   const tw=e.res.reduce((a,r)=>a+(r.weight||1/e.res.length),0)||1;
   return e.res.map((r,i)=>{ const a=ev.tasks.find(z=>+z.answer===i+1)||ev.tasks[i]||{}; const n=arWords(r.text).length, min=r.min||50;
     const crit={}; WAI.forEach(k=>{ const c=a[k]||{}; crit[k]={score:n?Math.max(0,Math.min(10,Math.round((+c.score||0)*10)/10)):0,note:c.note||""}; });
     crit.sozlar_soni={score:wcScore(n,min,r.max),note:n+" so'z (talab: "+min+(r.max?"–"+r.max:"+")+")"};
+    if(n){ const letter=String(r.part).startsWith("1.1"), lf=linkFound(r.text), ls=linkScore(lf.length,letter);
+      crit.boglovchilar.score=Math.round((crit.boglovchilar.score+ls)/2*2)/2;
+      crit.boglovchilar.note=lf.length+" xil bog'lovchi topildi"+(lf.length?" ("+lf.slice(0,8).join("، ")+")":"")+(crit.boglovchilar.note?". "+crit.boglovchilar.note:"");
+      const sc=structCap(r.text,r.part); if(crit.struktura.score>sc.cap) crit.struktura.score=sc.cap;
+      crit.struktura.note=sc.note[0].toUpperCase()+sc.note.slice(1)+(crit.struktura.note?". "+crit.struktura.note:""); }
     const sum=WCRIT.reduce((x,c)=>x+crit[c[0]].score,0), max=75*(r.weight||1/e.res.length)/tw;
     const f=n>=min*0.5?1:n/(min*0.5);
     return {answer:i+1,part:r.part,words:n,crit,max,pts:sum/50*max*f}; });
