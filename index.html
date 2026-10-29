@@ -1336,7 +1336,7 @@ async function aiCopy(e,rr){
 function aiParse(txt){
   const a=txt.indexOf("{"), b=txt.lastIndexOf("}");
   const ev=JSON.parse(txt.slice(a,b+1));
-  if(!ev.insufficient && !LVLS.includes(ev.level)) throw new Error("level");
+  if(!ev.insufficient && !LVLS.includes(ev.level) && !Array.isArray(ev.tasks)) throw new Error("level");
   return ev;
 }
 async function aiRun(e){
@@ -3331,7 +3331,7 @@ const WCRIT=[["struktura","Struktura va tuzilma","البنية"],["imlo_grammati
 const WAI=["struktura","imlo_grammatika","mazmun","boglovchilar"];
 const AI_WSYS=`You are a strict but fair examiner for written Modern Standard Arabic (Fusha) in the Uzbek national multilevel CEFR exam. You receive JSON with writing tasks: each item has the answer number, the task id, the prompt, the minutes allowed, the required word count and the candidate's TEXT. Format: Task 1 is a letter (1.1 short informal letter ~50 words, 1.2 formal letter ~100-150 words; 20 minutes, 33% of the score); Task 2 is an essay of about 250 words (40 minutes, 67%).
 Official marking scheme: every task is marked on five criteria — structure, spelling & grammar, meaning & content, word count, linking words. Word count is counted by the system, so you score the other FOUR criteria, separately for EVERY task.
-Rules: judge only what is written; never invent words; quote mistakes exactly. Do not penalise missing diacritics. Dialect and non-Arabic words count as errors in "imlo_grammatika". An empty task gets 0 in every criterion. If all texts are empty or far too short, set "insufficient" true.
+Rules: judge only what is written; never invent words; quote mistakes exactly. Do not penalise missing diacritics. Dialect and non-Arabic words count as errors in "imlo_grammatika". An empty task gets 0 in every criterion. Short or weak texts are NOT insufficient: score them low with the rubric. Set "insufficient" true ONLY when every text is completely empty.
 Write every explanation in Uzbek (Latin script); Arabic only for quotes and corrections.
 Return ONLY valid JSON in exactly this shape:
 {"insufficient":false,"level_note":"1-2 sentences in Uzbek","tasks":[{"answer":1,"struktura":{"score":0,"note":""},"imlo_grammatika":{"score":0,"note":""},"mazmun":{"score":0,"note":""},"boglovchilar":{"score":0,"note":""}}],"strengths":["..."],"weak":["..."],"mistakes":[{"answer":1,"said":"exact Arabic quote","fix":"corrected Arabic","why":"short rule in Uzbek"}],"per_answer":[{"answer":1,"comment":"1-2 sentences in Uzbek"}],"advice":["..."]}
